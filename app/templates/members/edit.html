@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+{% block title %}Cập nhật hồ sơ độc giả{% endblock %}
+{% block page_title %}Cập nhật thông tin độc giả{% endblock %}
+
+{% block content %}
+<div class="page-intro">
+    <div>
+        <h2>Chỉnh sửa hồ sơ: {{ member.full_name }}</h2>
+        <p class="page-purpose">MSSV/MCB: {{ member.student_id or '-' }} • Mã thẻ thư viện: {{ member.member_code }}</p>
+    </div>
+    <a href="{{ url_for('members.detail', member_id=member.id) }}" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-arrow-left me-1"></i>Quay lại hồ sơ
+    </a>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-8">
+        <form method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="card">
+                <div class="card-header">Thông tin độc giả</div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Mã số sinh viên / Mã cán bộ <span class="text-danger">*</span></label>
+                            <input type="text" name="student_id" class="form-control" value="{{ member.student_id or '' }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Họ và tên <span class="text-danger">*</span></label>
+                            <input type="text" name="full_name" class="form-control" value="{{ member.full_name }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Email <span class="text-danger">*</span></label>
+                            <input type="email" name="email" class="form-control" value="{{ member.email }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Số điện thoại</label>
+                            <input type="tel" name="phone" class="form-control" value="{{ member.phone or '' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Khoa / Viện</label>
+                            <input type="text" name="faculty" class="form-control" value="{{ member.faculty or '' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Lớp / Bộ môn</label>
+                            <input type="text" name="class_name" class="form-control" value="{{ member.class_name or '' }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Khóa học</label>
+                            <input type="text" name="cohort" class="form-control" value="{{ member.cohort or '' }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Năm dự kiến ra trường</label>
+                            <input type="number" name="graduation_year" class="form-control" value="{{ member.graduation_year or '' }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Giới tính</label>
+                            <select name="gender" class="form-select">
+                                <option value="male" {% if member.gender == 'male' %}selected{% endif %}>Nam</option>
+                                <option value="female" {% if member.gender == 'female' %}selected{% endif %}>Nữ</option>
+                                <option value="other" {% if member.gender == 'other' %}selected{% endif %}>Khác</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Đối tượng</label>
+                            <select name="member_type" class="form-select">
+                                <option value="student" {% if member.member_type == 'student' %}selected{% endif %}>Sinh viên</option>
+                                <option value="postgrad" {% if member.member_type == 'postgrad' %}selected{% endif %}>Học viên cao học</option>
+                                <option value="lecturer" {% if member.member_type == 'lecturer' %}selected{% endif %}>Giảng viên / Cán bộ</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Trạng thái thẻ</label>
+                            <select name="status" class="form-select">
+                                <option value="active" {% if member.status == 'active' %}selected{% endif %}>Đang hoạt động</option>
+                                <option value="suspended" {% if member.status == 'suspended' %}selected{% endif %}>Tạm khóa</option>
+                                <option value="graduated" {% if member.status == 'graduated' %}selected{% endif %}>Đã ra trường</option>
+                                <option value="inactive" {% if member.status == 'inactive' %}selected{% endif %}>Ngưng hoạt động</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Hạn thẻ</label>
+                            <input type="date" name="membership_end" class="form-control"
+                                   value="{{ member.membership_end.strftime('%Y-%m-%d') if member.membership_end else '' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Ngày sinh</label>
+                            <input type="date" name="date_of_birth" class="form-control"
+                                   value="{{ member.date_of_birth.strftime('%Y-%m-%d') if member.date_of_birth else '' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">CCCD</label>
+                            <input type="text" name="id_card" class="form-control" value="{{ member.id_card or '' }}">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Ghi chú</label>
+                            <textarea name="notes" class="form-control" rows="2">{{ member.notes or '' }}</textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">Lưu thay đổi</button>
+                    <a href="{{ url_for('members.detail', member_id=member.id) }}" class="btn btn-outline-secondary">Hủy</a>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">Tình trạng nghĩa vụ hiện tại</div>
+            <div class="card-body">
+                <div class="mb-2 d-flex justify-content-between">
+                    <span class="text-muted">Trạng thái:</span>
+                    {{ member.status | status_badge | safe }}
+                </div>
+                <div class="mb-2 d-flex justify-content-between">
+                    <span class="text-muted">Đang mượn:</span>
+                    <strong>{{ member.active_loans_count }}/{{ member.max_loans_allowed }} cuốn</strong>
+                </div>
+                <div class="mb-2 d-flex justify-content-between">
+                    <span class="text-muted">Phí phạt chưa đóng:</span>
+                    <strong class="{% if member.unpaid_fine > 0 %}text-danger{% endif %}">{{ member.unpaid_fine | vnd }}</strong>
+                </div>
+                <div class="small text-muted mt-3 pt-2 border-top">
+                    Lưu ý: Hệ thống chỉ cho phép chuyển sang trạng thái <strong>Đã ra trường</strong> khi độc giả đã trả hết sách và thanh toán đủ công nợ phạt.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

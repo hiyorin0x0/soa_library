@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+{% block title %}Cấp thẻ độc giả{% endblock %}
+{% block page_title %}Cấp thẻ thư viện miễn phí cho SV / GV{% endblock %}
+
+{% block content %}
+<div class="page-intro">
+    <div>
+        <h2>Đăng ký thẻ độc giả nội bộ</h2>
+        <p class="page-purpose">Thư viện miễn phí hoàn toàn phí làm thẻ và phí mượn sách; điều kiện bắt buộc là có Mã số sinh viên (MSSV) hoặc Mã cán bộ hợp lệ của trường.</p>
+    </div>
+    <a href="{{ url_for('members.index') }}" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-arrow-left me-1"></i>Quay lại danh sách
+    </a>
+</div>
+
+<form method="POST">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="row g-3">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">Thông tin sinh viên / giảng viên</div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Mã số sinh viên / Mã cán bộ <span class="text-danger">*</span></label>
+                            <input type="text" name="student_id" class="form-control" required placeholder="VD: 22110099 hoặc GV001050">
+                            <small class="text-muted" style="font-size:11px">Điều kiện bắt buộc để định danh và xét tốt nghiệp</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Họ và tên <span class="text-danger">*</span></label>
+                            <input type="text" name="full_name" class="form-control" required placeholder="Nguyễn Văn Minh">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Email nhà trường <span class="text-danger">*</span></label>
+                            <input type="email" name="email" class="form-control" required placeholder="22110099@sv.university.edu.vn">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Số điện thoại</label>
+                            <input type="tel" name="phone" class="form-control" placeholder="0901234567">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Khoa / Viện <span class="text-danger">*</span></label>
+                            <input type="text" name="faculty" class="form-control" required placeholder="VD: Khoa Công nghệ Thông tin">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Lớp hành chính / Bộ môn</label>
+                            <input type="text" name="class_name" class="form-control" placeholder="VD: D22CQCN01">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Khóa học</label>
+                            <input type="text" name="cohort" class="form-control" placeholder="VD: K22">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Năm dự kiến ra trường</label>
+                            <input type="number" name="graduation_year" class="form-control" min="2020" max="2040" placeholder="VD: 2026">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Giới tính</label>
+                            <select name="gender" class="form-select">
+                                <option value="male">Nam</option>
+                                <option value="female">Nữ</option>
+                                <option value="other">Khác</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Ngày sinh</label>
+                            <input type="date" name="date_of_birth" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">CCCD (tùy chọn)</label>
+                            <input type="text" name="id_card" class="form-control" placeholder="079...">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Ghi chú</label>
+                            <textarea name="notes" class="form-control" rows="2" placeholder="Ghi chú thêm nếu có..."></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4 d-flex flex-column gap-3">
+            <div class="card">
+                <div class="card-header">Đối tượng & Hạn mức mượn miễn phí</div>
+                <div class="card-body">
+                    <div class="form-check p-3 border rounded mb-2" style="background:#FAF8F4">
+                        <input class="form-check-input" type="radio" name="member_type" value="student" id="typeStudent" checked>
+                        <label class="form-check-label d-block" for="typeStudent">
+                            <div class="fw-semibold">Sinh viên đại học</div>
+                            <small class="text-muted">Tối đa 5 cuốn • 14 ngày • Hiệu lực 4 năm</small>
+                        </label>
+                    </div>
+                    <div class="form-check p-3 border rounded mb-2">
+                        <input class="form-check-input" type="radio" name="member_type" value="postgrad" id="typePostgrad">
+                        <label class="form-check-label d-block" for="typePostgrad">
+                            <div class="fw-semibold">Học viên cao học</div>
+                            <small class="text-muted">Tối đa 7 cuốn • 21 ngày • Hiệu lực 2 năm</small>
+                        </label>
+                    </div>
+                    <div class="form-check p-3 border rounded">
+                        <input class="form-check-input" type="radio" name="member_type" value="lecturer" id="typeLecturer">
+                        <label class="form-check-label d-block" for="typeLecturer">
+                            <div class="fw-semibold">Giảng viên / Cán bộ</div>
+                            <small class="text-muted">Tối đa 10 cuốn • 30 ngày • Hiệu lực 5 năm</small>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-body d-grid gap-2">
+                    <div class="alert alert-info py-2 small mb-2">
+                        Phí làm thẻ: <strong>0₫ (Miễn phí)</strong>. Mã thẻ thư viện sẽ được sinh tự động theo đối tượng.
+                    </div>
+                    <button type="submit" class="btn btn-primary">Xác nhận cấp thẻ</button>
+                    <a href="{{ url_for('members.index') }}" class="btn btn-outline-secondary">Hủy bỏ</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+{% endblock %}

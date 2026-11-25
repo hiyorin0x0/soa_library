@@ -1,0 +1,209 @@
+{% extends 'base.html' %}
+{% block title %}Lập phiếu mượn{% endblock %}
+{% block page_title %}Lập phiếu mượn tài liệu{% endblock %}
+
+{% block content %}
+<div class="page-intro">
+    <div>
+        <h2>Tạo phiếu mượn miễn phí</h2>
+        <p class="page-purpose">Hệ thống tự động kiểm tra đủ 7 ràng buộc nghiệp vụ trước khi cấp phép mượn (thẻ SV/GV hợp lệ, hạn mức, không có sách quá hạn, không nợ phạt, tài liệu được phép mượn về).</p>
+    </div>
+    <a href="{{ url_for('loans.index') }}" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-arrow-left me-1"></i>Quay lại sổ lưu thông
+    </a>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-8">
+        <form method="POST" id="loanForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <div class="card mb-3">
+                <div class="card-header">1. Chọn độc giả (Bắt buộc thẻ SV / GV đang hoạt động)</div>
+                <div class="card-body">
+                    <label class="form-label">Tìm theo MSSV, mã thẻ hoặc họ tên <span class="text-danger">*</span></label>
+                    <input type="text" id="memberSearch" class="form-control mb-2" placeholder="Nhập tối thiểu 2 ký tự (VD: 2211, Nguyễn Văn...)" autocomplete="off">
+                    <input type="hidden" name="member_id" id="memberId" required>
+                    <div id="memberResult" class="border rounded d-none" style="max-height:220px;overflow-y:auto"></div>
+                    <div id="memberSelected" class="d-none mt-2 p-3 rounded" style="background:#FAF8F4;border:1px solid var(--border);border-left:3px solid var(--navy)">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <div class="fw-semibold" id="memberName"></div>
+                                <div class="text-muted small mt-1" id="memberInfo"></div>
+                                <div id="memberWarning" class="mt-2 d-none"></div>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearMember()">Đổi</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header">2. Chọn tài liệu mượn về</div>
+                <div class="card-body">
+                    <label class="form-label">Tìm theo tên tài liệu, ISBN hoặc tác giả <span class="text-danger">*</span></label>
+                    <input type="text" id="bookSearch" class="form-control mb-2" placeholder="Nhập tên sách, giáo trình hoặc mã ISBN..." autocomplete="off">
+                    <input type="hidden" name="book_id" id="bookId" required>
+                    <div id="bookResult" class="border rounded d-none" style="max-height:220px;overflow-y:auto"></div>
+                    <div id="bookSelected" class="d-none mt-2 p-3 rounded" style="background:#FAF8F4;border:1px solid var(--border);border-left:3px solid var(--forest)">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <div class="fw-semibold" id="bookTitle"></div>
+                                <div class="text-muted small mt-1" id="bookInfo"></div>
+                                <div id="bookWarning" class="mt-2 d-none"></div>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearBook()">Đổi</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header">3. Tình trạng tài liệu bàn giao</div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-5">
+                            <label class="form-label">Hiện trạng khi bàn giao</label>
+                            <select name="condition" class="form-select">
+                                <option value="good">Tốt (nguyên vẹn)</option>
+                                <option value="fair">Khá (có dấu hiệu cũ nhẹ)</option>
+                                <option value="poor">Kém (cần lưu ý bảo quản)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-7">
+                            <label class="form-label">Ghi chú nghiệp vụ</label>
+                            <input type="text" name="notes" class="form-control" placeholder="VD: Mượn phục vụ đồ án học phần...">
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">Xác nhận lập phiếu mượn</button>
+                    <a href="{{ url_for('loans.index') }}" class="btn btn-outline-secondary">Hủy</a>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">Ràng buộc nghiệp vụ áp dụng</div>
+            <div class="card-body small">
+                <ul class="ps-3 mb-0" style="line-height:1.75;color:var(--ink-muted)">
+                    <li><strong>Miễn phí mượn (0₫)</strong> cho sinh viên, học viên và giảng viên có thẻ nội bộ còn hiệu lực.</li>
+                    <li><strong>Hạn mức tự động:</strong> Sinh viên (5 cuốn / 14 ngày), Cao học (7 cuốn / 21 ngày), Giảng viên (10 cuốn / 30 ngày).</li>
+                    <li><strong>Chặn mượn sách đọc tại chỗ:</strong> Luận văn, đồ án, tài liệu bản lưu chiểu không cho mượn mang về.</li>
+                    <li><strong>Chặn vi phạm:</strong> Tự động từ chối nếu độc giả đang giữ sách quá hạn hoặc còn nợ phí phạt chưa đóng.</li>
+                    <li><strong>Chế tài trễ hạn:</strong> 2.000₫/ngày quá hạn; mất sách đền bù 100% giá bìa.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let memberTimer, bookTimer;
+function escapeHtml(str) { return String(str || '').replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s])); }
+
+document.getElementById('memberSearch').addEventListener('input', function() {
+    clearTimeout(memberTimer);
+    const q = this.value.trim();
+    const el = document.getElementById('memberResult');
+    if (q.length < 2) { el.classList.add('d-none'); return; }
+    memberTimer = setTimeout(() => {
+        fetch(`/api/v1/members/search?q=${encodeURIComponent(q)}`)
+            .then(r => r.json())
+            .then(res => {
+                const list = res.data || [];
+                el.innerHTML = list.length === 0
+                    ? '<div class="p-3 text-muted text-center small">Không tìm thấy độc giả đang hoạt động</div>'
+                    : list.map(m => {
+                        const blocked = (m.overdue_loans > 0 || m.unpaid_fine > 0 || m.active_loans >= m.max_loans);
+                        return `<div class="p-2 px-3 border-bottom d-flex justify-content-between align-items-center" style="cursor:pointer" onclick='selectMember(${JSON.stringify(m)})'>
+                            <div><div class="fw-semibold">${escapeHtml(m.text)}</div><div class="text-muted" style="font-size:11.5px">${escapeHtml(m.faculty || '')} • ${m.active_loans}/${m.max_loans} cuốn (${m.loan_days} ngày)</div></div>
+                            <span class="badge-tag ${blocked ? 'tag-danger' : 'tag-success'}">${m.overdue_loans > 0 ? 'Có sách quá hạn' : m.unpaid_fine > 0 ? 'Đang nợ phạt' : m.active_loans >= m.max_loans ? 'Đủ hạn mức' : 'Đủ điều kiện'}</span>
+                        </div>`;
+                    }).join('');
+                el.classList.remove('d-none');
+            });
+    }, 250);
+});
+
+function selectMember(m) {
+    document.getElementById('memberId').value = m.id;
+    document.getElementById('memberName').textContent = m.text;
+    document.getElementById('memberInfo').textContent = `${m.faculty ? m.faculty + ' • ' : ''}Đang mượn: ${m.active_loans}/${m.max_loans} cuốn • Thời hạn: ${m.loan_days} ngày`;
+    const warnEl = document.getElementById('memberWarning');
+    const warns = [];
+    if (m.overdue_loans > 0) warns.push(`Đang có ${m.overdue_loans} cuốn quá hạn — Loans Service sẽ chặn mượn mới.`);
+    if (m.unpaid_fine > 0) warns.push(`Đang nợ phạt ${Number(m.unpaid_fine).toLocaleString('vi-VN')}₫ chưa thanh toán.`);
+    if (m.active_loans >= m.max_loans) warns.push(`Đã đạt hạn mức tối đa (${m.max_loans} cuốn).`);
+    if (warns.length) { warnEl.innerHTML = `<div class="alert alert-danger py-1 px-2 mb-0 small">${warns.join(' ')}</div>`; warnEl.classList.remove('d-none'); }
+    else { warnEl.classList.add('d-none'); }
+    document.getElementById('memberSelected').classList.remove('d-none');
+    document.getElementById('memberSearch').classList.add('d-none');
+    document.getElementById('memberResult').classList.add('d-none');
+}
+function clearMember() {
+    document.getElementById('memberId').value = '';
+    document.getElementById('memberSelected').classList.add('d-none');
+    document.getElementById('memberSearch').classList.remove('d-none');
+    document.getElementById('memberSearch').value = '';
+}
+
+document.getElementById('bookSearch').addEventListener('input', function() {
+    clearTimeout(bookTimer);
+    const q = this.value.trim();
+    const el = document.getElementById('bookResult');
+    if (q.length < 2) { el.classList.add('d-none'); return; }
+    bookTimer = setTimeout(() => {
+        fetch(`/api/v1/books/search?q=${encodeURIComponent(q)}`)
+            .then(r => r.json())
+            .then(res => {
+                const list = res.data || [];
+                el.innerHTML = list.length === 0
+                    ? '<div class="p-3 text-muted text-center small">Không tìm thấy tài liệu</div>'
+                    : list.map(b => `<div class="p-2 px-3 border-bottom d-flex justify-content-between align-items-center" style="cursor:pointer" onclick='selectBook(${JSON.stringify(b)})'>
+                        <div><div class="fw-semibold">${escapeHtml(b.text)}</div><div class="text-muted" style="font-size:11.5px">ISBN: ${escapeHtml(b.isbn)}</div></div>
+                        ${b.circulation_type === 'reference_only' ? '<span class="badge-tag tag-navy">Chỉ đọc tại chỗ</span>' : (b.available > 0 ? `<span class="badge-tag tag-success">${b.available} sẵn sàng</span>` : '<span class="badge-tag tag-danger">Hết bản</span>')}
+                    </div>`).join('');
+                el.classList.remove('d-none');
+            });
+    }, 250);
+});
+
+function selectBook(b) {
+    document.getElementById('bookId').value = b.id;
+    document.getElementById('bookTitle').textContent = b.text;
+    document.getElementById('bookInfo').textContent = `ISBN: ${b.isbn} • Còn trên kệ: ${b.available} bản`;
+    const warnEl = document.getElementById('bookWarning');
+    if (b.circulation_type === 'reference_only') { warnEl.innerHTML = '<div class="alert alert-danger py-1 px-2 mb-0 small">Tài liệu thuộc diện CHỈ ĐỌC TẠI CHỖ — không được phép mượn về nhà.</div>'; warnEl.classList.remove('d-none'); }
+    else if (b.available <= 0) { warnEl.innerHTML = '<div class="alert alert-danger py-1 px-2 mb-0 small">Tài liệu hiện đã hết bản sao trên kệ.</div>'; warnEl.classList.remove('d-none'); }
+    else { warnEl.classList.add('d-none'); }
+    document.getElementById('bookSelected').classList.remove('d-none');
+    document.getElementById('bookSearch').classList.add('d-none');
+    document.getElementById('bookResult').classList.add('d-none');
+}
+function clearBook() {
+    document.getElementById('bookId').value = '';
+    document.getElementById('bookSelected').classList.add('d-none');
+    document.getElementById('bookSearch').classList.remove('d-none');
+    document.getElementById('bookSearch').value = '';
+}
+
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.get('member_id')) {
+    fetch(`/api/v1/members/${urlParams.get('member_id')}`).then(r => r.json()).then(res => {
+        const m = res.data;
+        if (m) selectMember({id: m.id, text: `${m.student_id || m.member_code} - ${m.full_name}`, faculty: m.faculty, active_loans: m.active_loans_count, max_loans: m.max_loans_allowed, loan_days: m.loan_duration_days, overdue_loans: m.overdue_loans_count, unpaid_fine: m.unpaid_fine});
+    });
+}
+if (urlParams.get('book_id')) {
+    fetch(`/api/v1/books/${urlParams.get('book_id')}`).then(r => r.json()).then(res => {
+        const b = res.data;
+        if (b) selectBook({id: b.id, text: `${b.title} - ${b.author}`, isbn: b.isbn, available: b.available_copies, circulation_type: b.circulation_type});
+    });
+}
+</script>
+{% endblock %}

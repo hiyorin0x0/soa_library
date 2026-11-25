@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Hệ thống Quản lý Thư viện Trường Đại học - Kiến trúc Hướng Dịch vụ (SOA)">
+    <title>{% block title %}Tổng quan{% endblock %} — Thư viện Trường Đại học</title>
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome 6 -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <!-- Academic Vietnamese Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Newsreader:opsz,wght@6..72,500;6..72,600;6..72,700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --navy: #1B365D;
+            --navy-dark: #132744;
+            --navy-soft: #EEF2F7;
+            --crimson: #8B2635;
+            --crimson-soft: #FDF2F3;
+            --forest: #245E43;
+            --forest-soft: #EEF6F1;
+            --ochre: #9A5B13;
+            --ochre-soft: #FDF6EB;
+            --slate-info: #255C7A;
+            --slate-info-soft: #EEF5F9;
+
+            --paper: #F5F2EC;
+            --paper-sidebar: #FAF8F4;
+            --surface: #FFFFFF;
+            --border: #DDD7CC;
+            --border-light: #ECE8E0;
+            --ink: #1D232A;
+            --ink-muted: #5A626A;
+            --ink-subtle: #7B828A;
+
+            --sidebar-width: 256px;
+            --topbar-height: 58px;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-size: 13.5px;
+            line-height: 1.5;
+            background: var(--paper);
+            color: var(--ink);
+            margin: 0;
+            border-top: 3px solid var(--crimson);
+        }
+
+        h1, h2, h3, .font-serif {
+            font-family: 'Newsreader', Georgia, serif;
+            letter-spacing: -0.01em;
+        }
+
+        code, .font-mono {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 12px;
+            color: var(--navy);
+            background: var(--navy-soft);
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+
+        /* ===== SIDEBAR ===== */
+        #sidebar {
+            position: fixed;
+            top: 3px; left: 0; bottom: 0;
+            width: var(--sidebar-width);
+            background: var(--paper-sidebar);
+            border-right: 1px solid var(--border);
+            overflow-y: auto;
+            overflow-x: hidden;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.2s ease;
+        }
+
+        .sidebar-brand {
+            padding: 18px 18px 16px;
+            border-bottom: 1px solid var(--border);
+            background: var(--surface);
+        }
+        .sidebar-brand a {
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 11px;
+        }
+        .brand-crest {
+            width: 36px; height: 36px;
+            background: var(--navy);
+            color: #FAF8F4;
+            border-radius: 4px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 16px;
+            flex-shrink: 0;
+            border-bottom: 2px solid var(--crimson);
+        }
+        .brand-title {
+            font-family: 'Newsreader', Georgia, serif;
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--navy);
+            line-height: 1.15;
+        }
+        .brand-sub {
+            font-size: 10.5px;
+            color: var(--ink-muted);
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            margin-top: 2px;
+        }
+
+        .sidebar-nav {
+            flex: 1;
+            padding: 10px 10px 18px;
+        }
+        .sidebar-section {
+            font-size: 10.5px;
+            font-weight: 700;
+            color: var(--ink-subtle);
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            padding: 14px 10px 5px;
+        }
+        .sidebar-nav .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 11px;
+            margin-bottom: 2px;
+            color: #363E47;
+            font-size: 13px;
+            font-weight: 500;
+            border-radius: 4px;
+            text-decoration: none;
+            border-left: 2px solid transparent;
+            transition: background 0.12s, color 0.12s;
+        }
+        .sidebar-nav .nav-link i {
+            width: 16px;
+            text-align: center;
+            font-size: 13px;
+            color: var(--ink-muted);
+        }
+        .sidebar-nav .nav-link:hover {
+            background: #EFECE5;
+            color: var(--navy);
+        }
+        .sidebar-nav .nav-link:hover i {
+            color: var(--navy);
+        }
+        .sidebar-nav .nav-link.active {
+            background: var(--navy-soft);
+            color: var(--navy);
+            font-weight: 600;
+            border-left-color: var(--navy);
+        }
+        .sidebar-nav .nav-link.active i {
+            color: var(--navy);
+        }
+
+        .sidebar-footer {
+            padding: 12px 16px;
+            border-top: 1px solid var(--border);
+            background: var(--surface);
+        }
+        .sidebar-user {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
+        }
+        .sidebar-user > div:nth-child(2) {
+            min-width: 0;
+            overflow: hidden;
+        }
+        .user-monogram {
+            width: 32px; height: 32px;
+            border-radius: 4px;
+            background: var(--navy);
+            color: #fff;
+            font-size: 12px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .user-name { font-size: 12.5px; font-weight: 600; color: var(--ink); line-height: 1.2; }
+        .user-role { font-size: 11px; color: var(--ink-muted); }
+
+        /* ===== MAIN AREA ===== */
+        #main-content {
+            margin-left: var(--sidebar-width);
+            min-height: calc(100vh - 3px);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ===== TOPBAR ===== */
+        #topbar {
+            height: var(--topbar-height);
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            padding: 0 24px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            gap: 12px;
+        }
+        .topbar-title {
+            font-family: 'Newsreader', Georgia, serif;
+            font-size: 19px;
+            font-weight: 600;
+            color: var(--navy);
+            flex: 1;
+            margin: 0;
+        }
+        .scope-pill {
+            font-size: 11.5px;
+            color: var(--forest);
+            background: var(--forest-soft);
+            border: 1px solid #C6DFD1;
+            padding: 4px 10px;
+            border-radius: 3px;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .page-content {
+            flex: 1;
+            padding: 22px 26px 36px;
+            max-width: 1440px;
+            width: 100%;
+        }
+
+        /* ===== PAGE HEADER & PURPOSE STRIP ===== */
+        .page-intro {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            gap: 16px;
+            margin-bottom: 18px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid var(--border);
+        }
+        .page-intro h2 {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--ink);
+            margin: 0 0 3px;
+        }
+        .page-purpose {
+            font-size: 12.5px;
+            color: var(--ink-muted);
+            margin: 0;
+        }
+
+        /* ===== CARDS & PANELS ===== */
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            box-shadow: none;
+        }
+        .card-header {
+            background: #FCFBF8;
+            border-bottom: 1px solid var(--border-light);
+            padding: 12px 18px;
+            font-weight: 600;
+            font-size: 13.5px;
+            color: var(--ink);
+        }
+        .card-body { padding: 18px; }
+        .card-footer {
+            background: #FCFBF8;
+            border-top: 1px solid var(--border-light);
+            padding: 12px 18px;
+        }
+
+        /* ===== KPI STRIP ===== */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            overflow: hidden;
+            margin-bottom: 18px;
+        }
+        .kpi-cell {
+            padding: 16px 20px;
+            border-right: 1px solid var(--border-light);
+        }
+        .kpi-cell:last-child { border-right: none; }
+        .kpi-label {
+            font-size: 11.5px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--ink-muted);
+            margin-bottom: 6px;
+        }
+        .kpi-value {
+            font-size: 26px;
+            font-weight: 700;
+            color: var(--ink);
+            line-height: 1.15;
+            font-variant-numeric: tabular-nums;
+        }
+        .kpi-value.is-danger { color: var(--crimson); }
+        .kpi-value.is-navy { color: var(--navy); }
+        .kpi-value.is-forest { color: var(--forest); }
+        .kpi-value.is-ochre { color: var(--ochre); }
+        .kpi-meta {
+            font-size: 12px;
+            color: var(--ink-subtle);
+            margin-top: 5px;
+        }
+
+        /* ===== FLAT TAGS / BADGES ===== */
+        .badge-tag {
+            display: inline-block;
+            font-size: 11.5px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 3px;
+            border: 1px solid transparent;
+            white-space: nowrap;
+        }
+        .tag-success { background: var(--forest-soft); color: var(--forest); border-color: #C2DFCE; }
+        .tag-warning { background: var(--ochre-soft); color: var(--ochre); border-color: #ECCFA6; }
+        .tag-danger  { background: var(--crimson-soft); color: var(--crimson); border-color: #EBC3C8; }
+        .tag-info    { background: var(--slate-info-soft); color: var(--slate-info); border-color: #C4DCE8; }
+        .tag-navy    { background: var(--navy-soft); color: var(--navy); border-color: #C8D4E6; }
+        .tag-neutral { background: #F1EFEA; color: #4A5158; border-color: #D9D4C9; }
+
+        /* ===== BUTTONS ===== */
+        .btn {
+            font-size: 13px;
+            font-weight: 500;
+            border-radius: 4px;
+            padding: 7px 14px;
+            white-space: nowrap;
+        }
+        .btn-sm { padding: 4px 10px; font-size: 12px; }
+        .btn-primary {
+            background: var(--navy);
+            border-color: var(--navy);
+            color: #fff;
+        }
+        .btn-primary:hover, .btn-primary:focus {
+            background: var(--navy-dark);
+            border-color: var(--navy-dark);
+        }
+        .btn-outline-primary {
+            color: var(--navy);
+            border-color: #B7C4D8;
+        }
+        .btn-outline-primary:hover {
+            background: var(--navy);
+            border-color: var(--navy);
+            color: #fff;
+        }
+        .btn-success { background: var(--forest); border-color: var(--forest); }
+        .btn-success:hover { background: #1B4934; border-color: #1B4934; }
+        .btn-danger { background: var(--crimson); border-color: var(--crimson); }
+        .btn-danger:hover { background: #6E1C28; border-color: #6E1C28; }
+        .btn-outline-secondary { color: #3D454E; border-color: var(--border); background: #fff; }
+        .btn-outline-secondary:hover { background: #EFECE5; color: var(--ink); border-color: #C7C0B3; }
+
+        /* ===== TABLES ===== */
+        .table {
+            font-size: 13px;
+            color: var(--ink);
+            margin-bottom: 0;
+        }
+        .table thead th {
+            background: #F8F6F1;
+            color: var(--ink-muted);
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            border-bottom: 1px solid var(--border);
+            padding: 10px 14px;
+            white-space: nowrap;
+        }
+        .table tbody td {
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--border-light);
+            vertical-align: middle;
+        }
+        .table-hover tbody tr:hover { background: #FAF8F4; }
+        .row-overdue { background: #FFF8F7 !important; }
+
+        /* ===== FORMS ===== */
+        .form-control, .form-select {
+            border-radius: 4px;
+            border: 1px solid #CFC9BC;
+            font-size: 13px;
+            padding: 7px 11px;
+            color: var(--ink);
+        }
+        .form-select {
+            padding-right: 32px;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+        }
+        .form-control:focus, .form-select:focus {
+            border-color: var(--navy);
+            box-shadow: 0 0 0 2px rgba(27, 54, 93, 0.14);
+        }
+        .form-label {
+            font-weight: 600;
+            font-size: 12.5px;
+            color: #2F3740;
+            margin-bottom: 4px;
+        }
+
+        /* ===== ALERTS ===== */
+        .alert {
+            border-radius: 4px;
+            font-size: 13px;
+            border-width: 1px;
+            border-left-width: 3px;
+        }
+        .alert-danger { background: var(--crimson-soft); color: #6B1A26; border-color: #EBC3C8; border-left-color: var(--crimson); }
+        .alert-warning { background: var(--ochre-soft); color: #6B3F0B; border-color: #ECCFA6; border-left-color: var(--ochre); }
+        .alert-success { background: var(--forest-soft); color: #194530; border-color: #C2DFCE; border-left-color: var(--forest); }
+        .alert-info { background: var(--slate-info-soft); color: #1A4359; border-color: #C4DCE8; border-left-color: var(--slate-info); }
+
+        /* ===== DATA BOX ===== */
+        .info-field {
+            padding: 9px 12px;
+            background: #FAF8F4;
+            border: 1px solid var(--border-light);
+            border-radius: 4px;
+        }
+        .info-field-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            color: var(--ink-subtle);
+            display: block;
+            margin-bottom: 2px;
+        }
+
+        /* ===== PAGINATION ===== */
+        .page-link {
+            border-radius: 3px !important;
+            margin: 0 2px;
+            color: var(--navy);
+            border-color: var(--border);
+            font-size: 12.5px;
+        }
+        .page-item.active .page-link {
+            background: var(--navy);
+            border-color: var(--navy);
+        }
+
+        .breadcrumb { font-size: 12px; }
+        .breadcrumb a { color: var(--navy); text-decoration: none; }
+        .breadcrumb a:hover { text-decoration: underline; }
+
+        .empty-state {
+            text-align: center;
+            padding: 48px 20px;
+            color: var(--ink-muted);
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+        }
+        .empty-state i { font-size: 34px; color: #C5BEB2; margin-bottom: 12px; }
+
+        .search-wrapper { position: relative; }
+        .search-wrapper .search-icon {
+            position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+            color: var(--ink-subtle); font-size: 12.5px;
+        }
+        .search-wrapper .form-control { padding-left: 32px; }
+
+        @media (max-width: 992px) {
+            .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+            .kpi-cell { border-bottom: 1px solid var(--border-light); }
+            .scope-pill { display: none; }
+        }
+        @media (max-width: 768px) {
+            #sidebar { transform: translateX(-100%); }
+            #sidebar.show { transform: translateX(0); }
+            #main-content { margin-left: 0; }
+            .page-content { padding: 16px; }
+            .kpi-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+<!-- SIDEBAR -->
+<nav id="sidebar">
+    <div class="sidebar-brand">
+        <a href="{{ url_for('dashboard.index') }}">
+            <div class="brand-crest"><i class="fas fa-landmark"></i></div>
+            <div>
+                <div class="brand-title">Thư viện Đại học</div>
+                <div class="brand-sub">Cổng nghiệp vụ SOA</div>
+            </div>
+        </a>
+    </div>
+
+    <div class="sidebar-nav">
+        <div class="sidebar-section">Điều hành & Thiết kế</div>
+        <a href="{{ url_for('dashboard.index') }}"
+           class="nav-link {% if request.endpoint == 'dashboard.index' %}active{% endif %}">
+            <i class="fas fa-table-columns"></i> Tổng quan hoạt động
+        </a>
+        <a href="{{ url_for('dashboard.architecture') }}"
+           class="nav-link {% if request.endpoint == 'dashboard.architecture' %}active{% endif %}">
+            <i class="fas fa-sitemap"></i> Phạm vi & Kiến trúc SOA
+        </a>
+
+        <div class="sidebar-section">Kho tài liệu</div>
+        <a href="{{ url_for('books.index') }}"
+           class="nav-link {% if request.endpoint in ('books.index', 'books.detail', 'books.create', 'books.edit') %}active{% endif %}">
+            <i class="fas fa-book"></i> Danh mục tài liệu
+        </a>
+        <a href="{{ url_for('books.categories') }}"
+           class="nav-link {% if request.endpoint == 'books.categories' %}active{% endif %}">
+            <i class="fas fa-folder-tree"></i> Ngành & Thể loại
+        </a>
+
+        <div class="sidebar-section">Độc giả nội bộ</div>
+        <a href="{{ url_for('members.index') }}"
+           class="nav-link {% if request.endpoint in ('members.index', 'members.detail', 'members.create', 'members.edit') %}active{% endif %}">
+            <i class="fas fa-id-card"></i> Độc giả (SV / GV)
+        </a>
+        <a href="{{ url_for('members.clearance') }}"
+           class="nav-link {% if request.endpoint == 'members.clearance' %}active{% endif %}">
+            <i class="fas fa-graduation-cap"></i> Xác nhận ra trường
+        </a>
+
+        <div class="sidebar-section">Lưu thông & Chế tài</div>
+        <a href="{{ url_for('loans.index') }}"
+           class="nav-link {% if request.endpoint in ('loans.index', 'loans.detail', 'loans.create', 'loans.return_book') %}active{% endif %}">
+            <i class="fas fa-right-left"></i> Phiếu mượn / trả
+        </a>
+        <a href="{{ url_for('loans.overdue') }}"
+           class="nav-link {% if request.endpoint == 'loans.overdue' %}active{% endif %}">
+            <i class="fas fa-clock"></i> Quá hạn & Phí phạt
+        </a>
+        <a href="{{ url_for('loans.reports') }}"
+           class="nav-link {% if request.endpoint == 'loans.reports' %}active{% endif %}">
+            <i class="fas fa-chart-column"></i> Báo cáo thống kê
+        </a>
+
+        {% if current_user.is_admin %}
+        <div class="sidebar-section">Quản trị hệ thống</div>
+        <a href="{{ url_for('auth.users') }}"
+           class="nav-link {% if request.endpoint in ('auth.users', 'auth.create_user') %}active{% endif %}">
+            <i class="fas fa-user-shield"></i> Tài khoản thủ thư
+        </a>
+        {% endif %}
+    </div>
+
+    <div class="sidebar-footer">
+        <div class="sidebar-user">
+            <div class="user-monogram">{{ current_user.full_name[0]|upper }}</div>
+            <div class="flex-grow-1 min-w-0">
+                <div class="user-name text-truncate">{{ current_user.full_name }}</div>
+                <div class="user-role">{{ 'Quản trị hệ thống' if current_user.is_admin else 'Cán bộ thư viện' }}</div>
+            </div>
+            <a href="{{ url_for('auth.logout') }}" class="text-muted ms-1" title="Đăng xuất">
+                <i class="fas fa-sign-out-alt"></i>
+            </a>
+        </div>
+    </div>
+</nav>
+
+<!-- MAIN CONTENT -->
+<div id="main-content">
+    <header id="topbar">
+        <button class="btn btn-sm btn-outline-secondary d-md-none" id="sidebarToggle">
+            <i class="fas fa-bars"></i>
+        </button>
+        <h1 class="topbar-title">{% block page_title %}Tổng quan hoạt động{% endblock %}</h1>
+        <span class="scope-pill">
+            <i class="fas fa-circle-check me-1"></i>Miễn phí mượn nội bộ SV/GV • Bắt buộc thẻ trường
+        </span>
+        <div class="d-flex align-items-center gap-2">
+            <a href="{{ url_for('loans.create') }}" class="btn btn-primary btn-sm">
+                <i class="fas fa-plus me-1"></i>Lập phiếu mượn
+            </a>
+            <div class="dropdown">
+                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                    {{ current_user.username }}
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                    <li><a class="dropdown-item" href="{{ url_for('auth.profile') }}"><i class="fas fa-user me-2"></i>Hồ sơ cá nhân</a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('dashboard.architecture') }}"><i class="fas fa-sitemap me-2"></i>Quy định & Kiến trúc SOA</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item text-danger" href="{{ url_for('auth.logout') }}"><i class="fas fa-sign-out-alt me-2"></i>Đăng xuất</a></li>
+                </ul>
+            </div>
+        </div>
+    </header>
+
+    <main class="page-content">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="mb-3">
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show py-2" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close py-2" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+document.getElementById('sidebarToggle')?.addEventListener('click', function() {
+    document.getElementById('sidebar').classList.toggle('show');
+});
+setTimeout(() => {
+    document.querySelectorAll('.alert-dismissible').forEach(el => {
+        try { new bootstrap.Alert(el).close(); } catch (e) {}
+    });
+}, 6000);
+</script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

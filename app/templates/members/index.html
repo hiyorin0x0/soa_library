@@ -1,0 +1,181 @@
+{% extends 'base.html' %}
+{% block title %}Độc giả nội bộ{% endblock %}
+{% block page_title %}Quản lý Độc giả (Sinh viên & Giảng viên){% endblock %}
+
+{% block content %}
+<div class="page-intro">
+    <div>
+        <h2>Hồ sơ độc giả nhà trường</h2>
+        <p class="page-purpose">
+            Mục đích: Xác thực đối tượng nội bộ được mượn sách miễn phí thông qua Mã số sinh viên (MSSV) / Mã cán bộ, kiểm soát hạn mức và ràng buộc hoàn trả sách ra trường.
+        </p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('members.clearance') }}" class="btn btn-outline-primary btn-sm">
+            <i class="fas fa-graduation-cap me-1"></i>Xác nhận ra trường
+        </a>
+        <a href="{{ url_for('members.create') }}" class="btn btn-primary btn-sm">
+            <i class="fas fa-user-plus me-1"></i>Cấp thẻ độc giả
+        </a>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card mb-3">
+    <div class="card-body py-3">
+        <form method="GET" class="row g-2 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label">Tra cứu độc giả</label>
+                <div class="search-wrapper">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" name="search" class="form-control"
+                           placeholder="MSSV, mã thẻ, họ tên, lớp, email..."
+                           value="{{ search }}">
+                </div>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Đối tượng</label>
+                <select name="type" class="form-select">
+                    <option value="">Tất cả</option>
+                    <option value="student" {% if selected_type == 'student' %}selected{% endif %}>Sinh viên</option>
+                    <option value="postgrad" {% if selected_type == 'postgrad' %}selected{% endif %}>Học viên cao học</option>
+                    <option value="lecturer" {% if selected_type == 'lecturer' %}selected{% endif %}>Giảng viên / CB</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Khoa / Đơn vị</label>
+                <select name="faculty" class="form-select">
+                    <option value="">Tất cả khoa</option>
+                    {% for f in faculties %}
+                    <option value="{{ f }}" {% if selected_faculty == f %}selected{% endif %}>{{ f }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Trạng thái thẻ</label>
+                <select name="status" class="form-select">
+                    <option value="">Tất cả</option>
+                    <option value="active" {% if selected_status == 'active' %}selected{% endif %}>Đang hoạt động</option>
+                    <option value="suspended" {% if selected_status == 'suspended' %}selected{% endif %}>Tạm khóa</option>
+                    <option value="graduated" {% if selected_status == 'graduated' %}selected{% endif %}>Đã ra trường</option>
+                    <option value="inactive" {% if selected_status == 'inactive' %}selected{% endif %}>Ngưng HĐ</option>
+                </select>
+            </div>
+            <div class="col-md-2 d-flex gap-2">
+                <button type="submit" class="btn btn-primary flex-grow-1">Lọc</button>
+                <a href="{{ url_for('members.index') }}" class="btn btn-outline-secondary" title="Đặt lại"><i class="fas fa-rotate-left"></i></a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="mb-2">
+    <small class="text-muted">Hiển thị {{ members | length }} / {{ pagination.total }} độc giả</small>
+</div>
+
+{% if members %}
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>MSSV / Mã CB</th>
+                    <th>Họ và tên</th>
+                    <th>Khoa / Lớp</th>
+                    <th>Đối tượng</th>
+                    <th class="text-center">Đang mượn</th>
+                    <th class="text-end">Nợ phạt</th>
+                    <th>Trạng thái</th>
+                    <th class="text-end">Thao tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for member in members %}
+                <tr>
+                    <td class="text-nowrap">
+                        <code>{{ member.student_id or '-' }}</code>
+                        <div class="text-muted" style="font-size:11px">Thẻ: {{ member.member_code }}</div>
+                    </td>
+                    <td>
+                        <a href="{{ url_for('members.detail', member_id=member.id) }}" class="fw-semibold text-decoration-none" style="color:var(--ink)">
+                            {{ member.full_name }}
+                        </a>
+                        <div class="text-muted" style="font-size:11.5px">{{ member.email }}</div>
+                    </td>
+                    <td>
+                        <div>{{ member.faculty or '-' }}</div>
+                        <div class="text-muted" style="font-size:11.5px">
+                            {{ member.class_name or '' }}{% if member.graduation_year %} • TN {{ member.graduation_year }}{% endif %}
+                        </div>
+                    </td>
+                    <td>
+                        <span class="badge-tag tag-navy">{{ member.member_type | member_type_label }}</span>
+                    </td>
+                    <td class="text-center text-nowrap">
+                        <span class="badge-tag {% if member.overdue_loans_count > 0 %}tag-danger{% elif member.active_loans_count > 0 %}tag-warning{% else %}tag-neutral{% endif %}">
+                            {{ member.active_loans_count }}/{{ member.max_loans_allowed }}
+                        </span>
+                    </td>
+                    <td class="text-end text-nowrap">
+                        {% if member.unpaid_fine > 0 %}
+                        <span class="fw-semibold text-danger">{{ member.unpaid_fine | vnd }}</span>
+                        {% else %}
+                        <span class="text-muted">0₫</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ member.status | status_badge | safe }}</td>
+                    <td class="text-end text-nowrap">
+                        <div class="d-inline-flex gap-1">
+                            <a href="{{ url_for('members.detail', member_id=member.id) }}" class="btn btn-outline-primary btn-sm" title="Chi tiết & Ra trường">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            <a href="{{ url_for('members.edit', member_id=member.id) }}" class="btn btn-outline-secondary btn-sm" title="Sửa">
+                                <i class="fas fa-pen"></i>
+                            </a>
+                            {% if current_user.is_admin %}
+                            <form method="POST" action="{{ url_for('members.delete', member_id=member.id) }}"
+                                  onsubmit="return confirm('Xóa hồ sơ độc giả {{ member.full_name }}?')">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-outline-danger btn-sm" title="Xóa"><i class="fas fa-trash"></i></button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% if pagination.pages > 1 %}
+<nav class="mt-3">
+    <ul class="pagination justify-content-center">
+        <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+            <a class="page-link" href="?page={{ pagination.prev_num }}&search={{ search }}&status={{ selected_status }}&type={{ selected_type }}&faculty={{ selected_faculty }}">Trước</a>
+        </li>
+        {% for p in pagination.iter_pages(left_edge=2, right_edge=2, left_current=2, right_current=2) %}
+            {% if p %}
+            <li class="page-item {% if p == pagination.page %}active{% endif %}">
+                <a class="page-link" href="?page={{ p }}&search={{ search }}&status={{ selected_status }}&type={{ selected_type }}&faculty={{ selected_faculty }}">{{ p }}</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">…</span></li>
+            {% endif %}
+        {% endfor %}
+        <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+            <a class="page-link" href="?page={{ pagination.next_num }}&search={{ search }}&status={{ selected_status }}&type={{ selected_type }}&faculty={{ selected_faculty }}">Sau</a>
+        </li>
+    </ul>
+</nav>
+{% endif %}
+
+{% else %}
+<div class="empty-state">
+    <i class="fas fa-id-card d-block"></i>
+    <h6 class="fw-semibold">Không tìm thấy độc giả phù hợp</h6>
+    <p class="small mb-2">Kiểm tra lại MSSV hoặc cấp thẻ độc giả mới.</p>
+    <a href="{{ url_for('members.create') }}" class="btn btn-primary btn-sm">Cấp thẻ độc giả</a>
+</div>
+{% endif %}
+{% endblock %}

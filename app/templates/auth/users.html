@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% block title %}Tài khoản thủ thư{% endblock %}
+{% block page_title %}Quản lý tài khoản nhân sự thư viện{% endblock %}
+
+{% block content %}
+<div class="page-intro">
+    <div>
+        <h2>Tài khoản cán bộ & Quản trị viên</h2>
+        <p class="page-purpose">Phân quyền truy cập cổng nghiệp vụ và API giữa quản trị hệ thống và cán bộ thủ thư quầy lưu thông.</p>
+    </div>
+    <a href="{{ url_for('auth.create_user') }}" class="btn btn-primary btn-sm">Tạo tài khoản nhân sự</a>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr><th>Họ tên & Email</th><th>Tên đăng nhập</th><th>Vai trò</th><th>Đăng nhập gần nhất</th><th>Trạng thái</th><th class="text-end">Thao tác</th></tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr>
+                    <td><div class="fw-semibold">{{ user.full_name }}</div><div class="text-muted small">{{ user.email }}</div></td>
+                    <td><code>{{ user.username }}</code></td>
+                    <td><span class="badge-tag {% if user.role == 'admin' %}tag-danger{% else %}tag-navy{% endif %}">{{ 'Quản trị hệ thống' if user.role == 'admin' else 'Cán bộ thủ thư' }}</span></td>
+                    <td class="text-muted small">{{ user.last_login.strftime('%d/%m/%Y %H:%M') if user.last_login else 'Chưa đăng nhập' }}</td>
+                    <td><span class="badge-tag {% if user.is_active %}tag-success{% else %}tag-danger{% endif %}">{{ 'Hoạt động' if user.is_active else 'Đã khóa' }}</span></td>
+                    <td class="text-end">
+                        {% if user.id != current_user.id %}
+                        <a href="{{ url_for('auth.toggle_user', user_id=user.id) }}" class="btn btn-sm {% if user.is_active %}btn-outline-danger{% else %}btn-outline-success{% endif %}" onclick="return confirm('Xác nhận đổi trạng thái tài khoản {{ user.username }}?')">
+                            {{ 'Khóa tài khoản' if user.is_active else 'Kích hoạt' }}
+                        </a>
+                        {% else %}<span class="text-muted small">Tài khoản hiện tại</span>{% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,143 @@
+{% extends 'base.html' %}
+{% block title %}Chỉnh sửa tài liệu{% endblock %}
+{% block page_title %}Chỉnh sửa thông tin tài liệu{% endblock %}
+
+{% block content %}
+<div class="page-intro">
+    <div>
+        <h2>Cập nhật biên mục</h2>
+        <p class="page-purpose">{{ book.title }}</p>
+    </div>
+    <a href="{{ url_for('books.detail', book_id=book.id) }}" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-arrow-left me-1"></i>Quay lại chi tiết
+    </a>
+</div>
+
+<form method="POST" enctype="multipart/form-data">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="row g-3">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">Thông tin thư mục</div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Mã ISBN / Mã lưu chiểu <span class="text-danger">*</span></label>
+                            <input type="text" name="isbn" class="form-control" value="{{ book.isbn }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Ngành / Thể loại</label>
+                            <select name="category_id" class="form-select">
+                                <option value="">-- Chọn danh mục --</option>
+                                {% for cat in categories %}
+                                <option value="{{ cat.id }}" {% if book.category_id == cat.id %}selected{% endif %}>{{ cat.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Tên tài liệu <span class="text-danger">*</span></label>
+                            <input type="text" name="title" class="form-control" value="{{ book.title }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Tác giả <span class="text-danger">*</span></label>
+                            <input type="text" name="author" class="form-control" value="{{ book.author }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Khoa / Đơn vị chuyên môn</label>
+                            <input type="text" name="department" class="form-control" value="{{ book.department or '' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Nhà xuất bản</label>
+                            <input type="text" name="publisher" class="form-control" value="{{ book.publisher or '' }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Năm XB</label>
+                            <input type="number" name="publish_year" class="form-control" value="{{ book.publish_year or '' }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Số trang</label>
+                            <input type="number" name="pages" class="form-control" value="{{ book.pages or '' }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Ngôn ngữ</label>
+                            <select name="language" class="form-select">
+                                <option value="Tiếng Việt" {% if book.language == 'Tiếng Việt' %}selected{% endif %}>Tiếng Việt</option>
+                                <option value="Tiếng Anh" {% if book.language == 'Tiếng Anh' %}selected{% endif %}>Tiếng Anh</option>
+                                <option value="Tiếng Pháp" {% if book.language == 'Tiếng Pháp' %}selected{% endif %}>Tiếng Pháp</option>
+                                <option value="Tiếng Nhật" {% if book.language == 'Tiếng Nhật' %}selected{% endif %}>Tiếng Nhật</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Vị trí kệ</label>
+                            <input type="text" name="location" class="form-control" value="{{ book.location or '' }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Giá bìa bồi thường (VNĐ)</label>
+                            <input type="number" name="price" class="form-control" value="{{ book.price or 0 }}" min="0">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Mô tả</label>
+                            <textarea name="description" class="form-control" rows="3">{{ book.description or '' }}</textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4 d-flex flex-column gap-3">
+            <div class="card">
+                <div class="card-header">Quy chế lưu thông & Kho</div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Hình thức lưu thông</label>
+                        <select name="circulation_type" class="form-select">
+                            <option value="borrowable" {% if (book.circulation_type or 'borrowable') == 'borrowable' %}selected{% endif %}>Cho mượn về nhà</option>
+                            <option value="reference_only" {% if book.circulation_type == 'reference_only' %}selected{% endif %}>Chỉ đọc tại chỗ</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label">Tổng số bản sao</label>
+                        <input type="number" name="total_copies" class="form-control" value="{{ book.total_copies }}" min="1" required>
+                        <small class="text-muted">Hiện còn trên kệ: {{ book.available_copies }} bản</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">Ảnh bìa</div>
+                <div class="card-body text-center">
+                    <div id="coverPreview" class="mb-2" style="height:150px;overflow:hidden;border-radius:4px;cursor:pointer;border:1px dashed var(--border);background:#FAF8F4" onclick="document.getElementById('coverFile').click()">
+                        {% if book.cover_image %}
+                        <img src="{{ url_for('static', filename='img/books/' + book.cover_image) }}" class="w-100 h-100" style="object-fit:cover">
+                        {% else %}
+                        <div class="d-flex align-items-center justify-content-center h-100 text-muted small">Nhấp để thay ảnh bìa</div>
+                        {% endif %}
+                    </div>
+                    <input type="file" name="cover_image" id="coverFile" accept="image/*" class="d-none" onchange="previewCover(this)">
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-body d-grid gap-2">
+                    <button type="submit" class="btn btn-primary">Lưu thay đổi</button>
+                    <a href="{{ url_for('books.detail', book_id=book.id) }}" class="btn btn-outline-secondary">Hủy</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function previewCover(input) {
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = e => {
+            document.getElementById('coverPreview').innerHTML = `<img src="${e.target.result}" class="w-100 h-100" style="object-fit:cover">`;
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+{% block title %}Quá hạn & Phí phạt{% endblock %}
+{% block page_title %}Danh sách tài liệu quá hạn trả{% endblock %}
+
+{% block content %}
+<div class="page-intro">
+    <div>
+        <h2>Theo dõi quá hạn & Chế tài trả muộn</h2>
+        <p class="page-purpose">
+            Mục đích: Nhắc nhở độc giả hoàn trả giáo trình đúng hạn để duy trì nguồn sách xoay vòng cho toàn trường; tự động áp dụng mức phạt 2.000₫/ngày quá hạn và tạm chặn mượn mới.
+        </p>
+    </div>
+    <span class="badge-tag tag-danger" style="font-size:13px;padding:6px 12px">{{ overdue_list | length }} phiếu đang quá hạn</span>
+</div>
+
+{% if overdue_list %}
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Mã phiếu</th>
+                    <th>Độc giả (MSSV)</th>
+                    <th>Khoa / Liên hệ</th>
+                    <th>Tài liệu đang giữ</th>
+                    <th>Hạn trả</th>
+                    <th>Số ngày trễ</th>
+                    <th class="text-end">Phạt tạm tính</th>
+                    <th class="text-end">Thao tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in overdue_list %}
+                <tr class="row-overdue">
+                    <td><a href="{{ url_for('loans.detail', loan_id=item.loan.id) }}" class="text-decoration-none"><code>{{ item.loan.loan_code }}</code></a></td>
+                    <td>
+                        <a href="{{ url_for('members.detail', member_id=item.loan.member.id) }}" class="fw-semibold text-decoration-none" style="color:var(--ink)">{{ item.loan.member.full_name if item.loan.member else '-' }}</a>
+                        {% if item.loan.member and item.loan.member.student_id %}<div class="text-muted" style="font-size:11.5px">MSSV: {{ item.loan.member.student_id }}</div>{% endif %}
+                    </td>
+                    <td style="font-size:12px">
+                        <div>{{ item.loan.member.faculty or '-' if item.loan.member else '-' }}</div>
+                        <div class="text-muted">{{ item.loan.member.phone or '' if item.loan.member else '' }}</div>
+                    </td>
+                    <td style="max-width:220px" class="text-truncate">{{ item.loan.book.title if item.loan.book else '-' }}</td>
+                    <td class="text-danger fw-medium text-nowrap">{{ item.loan.due_date.strftime('%d/%m/%Y') if (item.loan.due_date and item.loan.due_date is not string) else (item.loan.due_date[:10] if item.loan.due_date else '-') }}</td>
+                    <td><span class="badge-tag tag-danger">{{ item.days_overdue }} ngày</span></td>
+                    <td class="text-end text-danger fw-semibold text-nowrap">{{ item.estimated_fine | vnd }}</td>
+                    <td class="text-end text-nowrap"><a href="{{ url_for('loans.return_book', loan_id=item.loan.id) }}" class="btn btn-success btn-sm">Tiếp nhận trả</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+<div class="mt-3 d-flex justify-content-between align-items-center small text-muted">
+    <span>Mức phạt quy định: 2.000₫ / ngày quá hạn (tự động cộng khi trả sách).</span>
+    <span>Tổng phạt tạm tính: <strong class="text-danger">{{ (overdue_list | map(attribute='estimated_fine') | sum) | vnd }}</strong></span>
+</div>
+{% else %}
+<div class="empty-state">
+    <i class="fas fa-circle-check d-block" style="color:var(--forest)"></i>
+    <h6 class="fw-semibold">Không có tài liệu quá hạn</h6>
+    <p class="small mb-0">Toàn bộ phiếu mượn hiện tại đều đang trong thời hạn cho phép.</p>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block title %}Hồ sơ cá nhân{% endblock %}
+{% block page_title %}Hồ sơ cán bộ thư viện{% endblock %}
+
+{% block content %}
+<div class="page-intro">
+    <div><h2>Tài khoản cá nhân</h2><p class="page-purpose">Thông tin cán bộ đang đăng nhập và đổi mật khẩu bảo mật.</p></div>
+</div>
+<div class="row g-3">
+    <div class="col-lg-5">
+        <div class="card">
+            <div class="card-header">Thông tin nhân sự</div>
+            <div class="card-body">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <div class="user-monogram" style="width:48px;height:48px;font-size:18px">{{ current_user.full_name[0]|upper }}</div>
+                    <div><div class="fw-bold">{{ current_user.full_name }}</div><div class="text-muted small">{{ current_user.email }}</div></div>
+                </div>
+                <div class="info-field mb-2"><span class="info-field-label">Tên đăng nhập</span><code>{{ current_user.username }}</code></div>
+                <div class="info-field"><span class="info-field-label">Vai trò</span><span class="badge-tag {% if current_user.is_admin %}tag-danger{% else %}tag-navy{% endif %}">{{ 'Quản trị hệ thống' if current_user.is_admin else 'Cán bộ thủ thư' }}</span></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-7">
+        <div class="card">
+            <div class="card-header">Đổi mật khẩu</div>
+            <form method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="action" value="change_password">
+                <div class="card-body">
+                    <div class="mb-3"><label class="form-label">Mật khẩu hiện tại</label><input type="password" name="old_password" class="form-control" required></div>
+                    <div class="mb-3"><label class="form-label">Mật khẩu mới</label><input type="password" name="new_password" class="form-control" required minlength="6"></div>
+                    <div><label class="form-label">Xác nhận mật khẩu mới</label><input type="password" name="confirm_password" class="form-control" required></div>
+                </div>
+                <div class="card-footer"><button type="submit" class="btn btn-primary">Cập nhật mật khẩu</button></div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block title %}Tạo tài khoản nhân sự{% endblock %}
+{% block page_title %}Tạo tài khoản cán bộ thư viện{% endblock %}
+
+{% block content %}
+<div class="page-intro">
+    <div><h2>Thêm nhân sự vận hành</h2><p class="page-purpose">Cấp tài khoản đăng nhập cổng nghiệp vụ cho cán bộ thủ thư hoặc quản trị hệ thống.</p></div>
+    <a href="{{ url_for('auth.users') }}" class="btn btn-outline-secondary btn-sm">Quay lại danh sách</a>
+</div>
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">Thông tin tài khoản mới</div>
+            <form method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="card-body">
+                    <div class="mb-3"><label class="form-label">Họ và tên <span class="text-danger">*</span></label><input type="text" name="full_name" class="form-control" required></div>
+                    <div class="mb-3"><label class="form-label">Tên đăng nhập <span class="text-danger">*</span></label><input type="text" name="username" class="form-control" required></div>
+                    <div class="mb-3"><label class="form-label">Email <span class="text-danger">*</span></label><input type="email" name="email" class="form-control" required></div>
+                    <div class="mb-3"><label class="form-label">Mật khẩu <span class="text-danger">*</span></label><input type="password" name="password" class="form-control" required minlength="6"></div>
+                    <div><label class="form-label">Vai trò phân quyền</label><select name="role" class="form-select"><option value="librarian">Cán bộ thủ thư</option><option value="admin">Quản trị hệ thống</option></select></div>
+                </div>
+                <div class="card-footer d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">Tạo tài khoản</button>
+                    <a href="{{ url_for('auth.users') }}" class="btn btn-outline-secondary">Hủy</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

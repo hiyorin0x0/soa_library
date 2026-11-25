@@ -1,0 +1,218 @@
+{% extends 'base.html' %}
+{% block title %}{{ member.full_name }}{% endblock %}
+{% block page_title %}Hồ sơ độc giả{% endblock %}
+
+{% block content %}
+<div class="page-intro">
+    <div>
+        <nav aria-label="breadcrumb" class="mb-1">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a href="{{ url_for('members.index') }}">Độc giả nội bộ</a></li>
+                <li class="breadcrumb-item active">{{ member.student_id or member.member_code }}</li>
+            </ol>
+        </nav>
+        <h2>{{ member.full_name }}</h2>
+        <p class="page-purpose">
+            {{ member.member_type | member_type_label }} • {{ member.faculty or 'Chưa cập nhật khoa' }}{% if member.class_name %} • {{ member.class_name }}{% endif %}
+        </p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('members.edit', member_id=member.id) }}" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-pen me-1"></i>Chỉnh sửa
+        </a>
+        {% if member.status == 'active' %}
+        <a href="{{ url_for('loans.create') }}?member_id={{ member.id }}" class="btn btn-primary btn-sm">
+            <i class="fas fa-plus me-1"></i>Lập phiếu mượn
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="row g-3">
+    <!-- Left Column: Card & Graduation Clearance -->
+    <div class="col-lg-4 d-flex flex-column gap-3">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>Thẻ thư viện trường</span>
+                {{ member.status | status_badge | safe }}
+            </div>
+            <div class="card-body">
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <div class="info-field">
+                            <span class="info-field-label">MSSV / Mã CB</span>
+                            <code>{{ member.student_id or '-' }}</code>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="info-field">
+                            <span class="info-field-label">Mã thẻ TV</span>
+                            <code>{{ member.member_code }}</code>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="info-field">
+                            <span class="info-field-label">Đang mượn / Hạn mức</span>
+                            <strong>{{ member.active_loans_count }} / {{ member.max_loans_allowed }} cuốn</strong>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="info-field">
+                            <span class="info-field-label">Nợ phạt chưa đóng</span>
+                            <strong class="{% if member.unpaid_fine > 0 %}text-danger{% else %}text-success{% endif %}">
+                                {{ member.unpaid_fine | vnd }}
+                            </strong>
+                        </div>
+                    </div>
+                </div>
+                <div class="small text-muted">
+                    Thời hạn mượn mặc định: <strong>{{ member.loan_duration_days }} ngày</strong> (Miễn phí).<br>
+                    Hạn thẻ: <strong>{{ member.membership_end.strftime('%d/%m/%Y') if member.membership_end else 'Không giới hạn' }}</strong>
+                </div>
+            </div>
+        </div>
+
+        <!-- Graduation Clearance Box (Directly fulfills teacher's business rule!) -->
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-graduation-cap me-1"></i>Kiểm tra nghĩa vụ ra trường
+            </div>
+            <div class="card-body">
+                {% if clearance_info.already_cleared %}
+                <div class="alert alert-success py-2 mb-0 small">
+                    <strong>Đã hoàn tất thủ tục ra trường</strong><br>
+                    Ngày xác nhận: {{ member.clearance_date.strftime('%d/%m/%Y') if member.clearance_date else '-' }}. Thẻ đã ngừng hiệu lực mượn mới.
+                </div>
+                {% elif clearance_info.eligible %}
+                <div class="alert alert-success py-2 mb-3 small">
+                    <strong>Đủ điều kiện xác nhận ra trường</strong><br>
+                    Độc giả không còn giữ tài liệu nào và không có công nợ phí phạt.
+                </div>
+                <form method="POST" action="{{ url_for('members.confirm_clearance', member_id=member.id) }}"
+                      onsubmit="return confirm('Xác nhận hoàn tất nghĩa vụ thư viện ra trường cho {{ member.full_name }}? Thẻ sẽ chuyển sang trạng thái Đã ra trường.')">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-success btn-sm w-100">
+                        <i class="fas fa-check me-1"></i>Xác nhận hoàn tất ra trường
+                    </button>
+                </form>
+                {% else %}
+                <div class="alert alert-danger py-2 mb-2 small">
+                    <strong>Chưa đủ điều kiện ra trường</strong>
+                    <ul class="mb-0 ps-3 mt-1">
+                        {% if clearance_info.active_loans | length > 0 %}
+                        <li>Còn <strong>{{ clearance_info.active_loans | length }}</strong> đầu sách đang mượn chưa trả.</li>
+                        {% endif %}
+                        {% if clearance_info.total_unpaid_fine > 0 %}
+                        <li>Còn nợ <strong>{{ clearance_info.total_unpaid_fine | vnd }}</strong> tiền phạt chưa thanh toán.</li>
+                        {% endif %}
+                    </ul>
+                </div>
+                <button class="btn btn-outline-secondary btn-sm w-100" disabled>
+                    Bị chặn xác nhận — Cần hoàn trả & đóng phạt
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column: Academic Info & Loan History -->
+    <div class="col-lg-8 d-flex flex-column gap-3">
+        <div class="card">
+            <div class="card-header">Thông tin học vụ & Liên hệ</div>
+            <div class="card-body">
+                <div class="row g-2">
+                    <div class="col-md-6">
+                        <div class="info-field">
+                            <span class="info-field-label">Email</span>
+                            <span>{{ member.email }}</span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="info-field">
+                            <span class="info-field-label">Số điện thoại</span>
+                            <span>{{ member.phone or '-' }}</span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="info-field">
+                            <span class="info-field-label">Khoa / Viện</span>
+                            <span>{{ member.faculty or '-' }}</span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="info-field">
+                            <span class="info-field-label">Lớp / Bộ môn</span>
+                            <span>{{ member.class_name or '-' }}</span>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="info-field">
+                            <span class="info-field-label">Khóa học</span>
+                            <span>{{ member.cohort or '-' }}</span>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="info-field">
+                            <span class="info-field-label">Năm dự kiến tốt nghiệp</span>
+                            <span>{{ member.graduation_year or '-' }}</span>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="info-field">
+                            <span class="info-field-label">Ngày sinh</span>
+                            <span>{{ member.date_of_birth.strftime('%d/%m/%Y') if member.date_of_birth else '-' }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>Lịch sử mượn / trả tài liệu</span>
+                <span class="badge-tag tag-navy">{{ member.total_loans_count }} phiếu</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Mã phiếu</th>
+                            <th>Tài liệu</th>
+                            <th>Ngày mượn</th>
+                            <th>Hạn trả</th>
+                            <th>Trạng thái</th>
+                            <th class="text-end">Phí phạt</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for loan in loans_pagination.items %}
+                        <tr class="{% if loan.is_overdue %}row-overdue{% endif %}">
+                            <td><a href="{{ url_for('loans.detail', loan_id=loan.id) }}"><code>{{ loan.loan_code }}</code></a></td>
+                            <td style="max-width:220px" class="text-truncate">{{ loan.book.title if loan.book else '-' }}</td>
+                            <td>{{ loan.loan_date.strftime('%d/%m/%Y') if loan.loan_date else '-' }}</td>
+                            <td>
+                                {{ loan.due_date.strftime('%d/%m/%Y') if loan.due_date else '-' }}
+                                {% if loan.is_overdue %}<span class="badge-tag tag-danger ms-1">Trễ {{ loan.days_overdue }}n</span>{% endif %}
+                            </td>
+                            <td>{{ loan.status | status_badge | safe }}</td>
+                            <td class="text-end">
+                                {% if loan.fine_amount %}
+                                    <span class="{% if not loan.fine_paid %}text-danger fw-semibold{% else %}text-muted{% endif %}">
+                                        {{ loan.fine_amount | vnd }}
+                                    </span>
+                                    <div style="font-size:11px">
+                                        {{ 'Đã đóng' if loan.fine_paid else 'Chưa đóng' }}
+                                    </div>
+                                {% else %}-{% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="6" class="text-center text-muted py-4">Chưa có giao dịch mượn sách</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

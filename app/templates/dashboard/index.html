@@ -1,0 +1,253 @@
+{% extends 'base.html' %}
+{% block title %}Tổng quan{% endblock %}
+{% block page_title %}Tổng quan hoạt động thư viện{% endblock %}
+
+{% block content %}
+<div class="page-intro">
+    <div>
+        <h2>Bảng điều hành nghiệp vụ</h2>
+        <p class="page-purpose">
+            Theo dõi tình trạng kho tài liệu, lượt mượn/trả của sinh viên – giảng viên, công nợ phạt và điều kiện ra trường.
+        </p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('members.clearance') }}" class="btn btn-outline-primary btn-sm">
+            <i class="fas fa-graduation-cap me-1"></i>Xét hoàn trả ra trường
+        </a>
+        <a href="{{ url_for('dashboard.architecture') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-sitemap me-1"></i>Phạm vi & Kiến trúc SOA
+        </a>
+    </div>
+</div>
+
+<!-- Operational Alerts -->
+{% if alerts %}
+<div class="mb-3">
+    {% for alert in alerts %}
+    <div class="alert alert-{{ alert.type }} d-flex align-items-center justify-content-between py-2 mb-2">
+        <div>
+            <i class="fas fa-{{ alert.icon }} me-2"></i>
+            <span>{{ alert.message }}</span>
+        </div>
+        <a href="{{ alert.link }}" class="btn btn-sm btn-outline-secondary ms-3">Kiểm tra</a>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- KPI Strip -->
+<div class="kpi-grid">
+    <div class="kpi-cell">
+        <div class="kpi-label">Kho tài liệu</div>
+        <div class="kpi-value is-navy">{{ summary.books.total_titles }}</div>
+        <div class="kpi-meta">
+            {{ summary.books.available_copies }}/{{ summary.books.total_copies }} bản sẵn sàng
+            {% if summary.books.reference_only_titles %}
+            • {{ summary.books.reference_only_titles }} chỉ đọc tại chỗ
+            {% endif %}
+        </div>
+    </div>
+    <div class="kpi-cell">
+        <div class="kpi-label">Độc giả hoạt động</div>
+        <div class="kpi-value is-forest">{{ summary.members.active }}</div>
+        <div class="kpi-meta">
+            Tổng {{ summary.members.total }} thẻ • {{ summary.members.graduated or 0 }} đã ra trường
+        </div>
+    </div>
+    <div class="kpi-cell">
+        <div class="kpi-label">Đang lưu thông</div>
+        <div class="kpi-value is-ochre">{{ summary.loans.borrowed }}</div>
+        <div class="kpi-meta">
+            {{ summary.loans.returned }} đã trả • {{ summary.due_today_count }} đến hạn hôm nay
+        </div>
+    </div>
+    <div class="kpi-cell">
+        <div class="kpi-label">Quá hạn & Phạt chưa thu</div>
+        <div class="kpi-value is-danger">{{ summary.loans.overdue }}</div>
+        <div class="kpi-meta">
+            Công nợ phạt: <strong class="text-danger">{{ summary.loans.unpaid_fine | vnd }}</strong>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row g-3 mb-3">
+    <div class="col-lg-8">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>Biến động mượn / trả 6 tháng gần đây</span>
+                <span class="text-muted small">Nguồn: Reports Service</span>
+            </div>
+            <div class="card-body">
+                <canvas id="monthlyChart" height="220"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card h-100">
+            <div class="card-header">Cơ cấu tài liệu theo ngành / thể loại</div>
+            <div class="card-body d-flex align-items-center justify-content-center">
+                <canvas id="categoryChart" height="220"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bottom Row: Recent Loans + Policy & Reader Breakdown -->
+<div class="row g-3">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>Phiếu mượn gần đây</span>
+                <a href="{{ url_for('loans.index') }}" class="btn btn-outline-secondary btn-sm">Xem tất cả</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Mã phiếu</th>
+                            <th>Độc giả (MSSV)</th>
+                            <th>Tài liệu</th>
+                            <th>Hạn trả</th>
+                            <th>Trạng thái</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for loan in summary.recent_loans %}
+                        <tr class="{% if loan.is_overdue %}row-overdue{% endif %}">
+                            <td>
+                                <a href="{{ url_for('loans.detail', loan_id=loan.id) }}" class="fw-semibold text-decoration-none" style="color:var(--navy)">
+                                    <code>{{ loan.loan_code }}</code>
+                                </a>
+                            </td>
+                            <td>
+                                <div class="fw-medium">{{ loan.member.full_name if loan.member else '-' }}</div>
+                                {% if loan.member and loan.member.student_id %}
+                                <div class="text-muted" style="font-size:11.5px">{{ loan.member.student_id }} • {{ loan.member.class_name or '' }}</div>
+                                {% endif %}
+                            </td>
+                            <td style="max-width:220px" class="text-truncate">{{ loan.book.title if loan.book else '-' }}</td>
+                            <td class="text-nowrap">
+                                {{ loan.due_date[:10] if loan.due_date else '-' }}
+                                {% if loan.is_overdue %}
+                                <div class="badge-tag tag-danger mt-1">Trễ {{ loan.days_overdue }} ngày</div>
+                                {% endif %}
+                            </td>
+                            <td>{{ loan.status | status_badge | safe }}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="5" class="text-center text-muted py-4">Chưa có giao dịch mượn trả nào</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4 d-flex flex-column gap-3">
+        <!-- Policy summary -->
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>Quy chế lưu thông áp dụng</span>
+                <a href="{{ url_for('dashboard.architecture') }}" class="small text-decoration-none" style="color:var(--navy)">Chi tiết</a>
+            </div>
+            <div class="card-body py-2 px-3">
+                <table class="table table-sm mb-0" style="font-size:12.5px">
+                    <tbody>
+                        <tr>
+                            <td class="text-muted ps-0">Phí mượn sách</td>
+                            <td class="text-end fw-semibold text-success pe-0">Miễn phí (0đ)</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted ps-0">Sinh viên</td>
+                            <td class="text-end pe-0">5 cuốn / 14 ngày</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted ps-0">Học viên cao học</td>
+                            <td class="text-end pe-0">7 cuốn / 21 ngày</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted ps-0">Giảng viên / Cán bộ</td>
+                            <td class="text-end pe-0">10 cuốn / 30 ngày</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted ps-0">Phạt trả muộn</td>
+                            <td class="text-end fw-semibold text-danger pe-0">2.000đ / ngày</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted ps-0 border-0">Điều kiện ra trường</td>
+                            <td class="text-end fw-semibold border-0 pe-0">0 sách giữ & 0đ nợ</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Readers by type -->
+        <div class="card">
+            <div class="card-header">Cơ cấu độc giả nội bộ</div>
+            <div class="card-body py-3">
+                {% for item in summary.members.by_type %}
+                <div class="d-flex justify-content-between align-items-center {% if not loop.last %}mb-2 pb-2 border-bottom{% endif %}" style="border-color:var(--border-light)!important">
+                    <span class="text-muted">{{ item.type | member_type_label }}</span>
+                    <span class="badge-tag tag-navy">{{ item.count }} thẻ</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+fetch('/api/v1/reports/monthly-loans?months=6')
+    .then(r => r.json())
+    .then(data => {
+        const rows = data.data || [];
+        new Chart(document.getElementById('monthlyChart'), {
+            type: 'bar',
+            data: {
+                labels: rows.map(d => d.month),
+                datasets: [
+                    { label: 'Lượt mượn', data: rows.map(d => d.borrowed), backgroundColor: '#1B365D', borderRadius: 3 },
+                    { label: 'Lượt trả', data: rows.map(d => d.returned), backgroundColor: '#245E43', borderRadius: 3 },
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'top', align: 'end' } },
+                scales: {
+                    y: { beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: '#ECE8E0' } },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+    });
+
+fetch('/api/v1/reports/category-distribution')
+    .then(r => r.json())
+    .then(data => {
+        const items = (data.data || []).filter(d => d.book_count > 0);
+        new Chart(document.getElementById('categoryChart'), {
+            type: 'doughnut',
+            data: {
+                labels: items.map(d => d.name),
+                datasets: [{
+                    data: items.map(d => d.book_count),
+                    backgroundColor: items.map(d => d.color),
+                    borderWidth: 2,
+                    borderColor: '#FFFFFF'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom', labels: { boxWidth: 11, font: { size: 11.5 } } } },
+                cutout: '62%'
+            }
+        });
+    });
+</script>
+{% endblock %}

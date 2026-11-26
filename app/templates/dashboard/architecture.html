@@ -1,152 +1,76 @@
 {% extends 'base.html' %}
-{% block title %}Phạm vi & Kiến trúc SOA{% endblock %}
-{% block page_title %}Phạm vi bài toán, Quy tắc nghiệp vụ & Thiết kế Dịch vụ SOA{% endblock %}
+{% block title %}Trạng thái dịch vụ{% endblock %}
+{% block page_title %}Trạng thái hệ thống dịch vụ{% endblock %}
 
 {% block content %}
-<div class="page-intro">
+<div class="section-header">
     <div>
-        <h2>Tài liệu Phân tích Thiết kế Dịch vụ (Service Design)</h2>
-        <p class="page-purpose">
-            Trình bày theo quy trình 3 bước chuẩn: <strong>1. Mục đích & Phạm vi bài toán</strong> → <strong>2. Chức năng chính & Quy tắc nghiệp vụ</strong> → <strong>3. Các dịch vụ (SOA Services) cần xây dựng</strong>.
-        </p>
+        <h2 class="section-title">Giám sát Kiến trúc & Tham số Vận hành</h2>
+        <p class="section-subtitle">Tình trạng kết nối trực tiếp từ API Gateway tới các phân hệ dịch vụ miền</p>
     </div>
-    <span class="badge-tag tag-navy" style="font-size:12px;padding:5px 10px">
-        Chế độ chạy: {{ 'API Gateway + 4 Services' if app_role == 'gateway' else 'Monolith (Local)' }} • Cổng {{ gateway_port }}
+    <span class="status-pill pill-indigo">
+        <span class="dot"></span>{{ 'Chế độ Phân tán (Gateway + 4 Services)' if app_role == 'gateway' else 'Chế độ Tích hợp Nội bộ' }} • Cổng {{ gateway_port }}
     </span>
 </div>
 
-<!-- STEP 1: Scope & Operating Model -->
-<div class="card mb-3">
-    <div class="card-header">
-        <strong>Bước 1. Phạm vi (Scope) & Mô hình hoạt động của bài toán</strong>
-    </div>
-    <div class="card-body">
-        <div class="row g-3">
-            <div class="col-md-4">
-                <div class="info-field h-100">
-                    <span class="info-field-label">Phạm vi khoanh vùng</span>
-                    <div class="fw-semibold mb-1">Thư viện Trường Đại học (Nội bộ)</div>
-                    <p class="small text-muted mb-0">
-                        Không làm hệ thống chung chung cho mọi loại thư viện. Hệ thống chỉ phục vụ công tác lưu thông giáo trình, tài liệu tham khảo và khóa luận cho <strong>Sinh viên, Học viên cao học và Giảng viên</strong> trong trường.
-                    </p>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="info-field h-100">
-                    <span class="info-field-label">Mô hình hoạt động (Miễn phí hay tính tiền?)</span>
-                    <div class="fw-semibold mb-1 text-success">Miễn phí mượn — Khuyến khích đọc</div>
-                    <p class="small text-muted mb-0">
-                        Không phải hệ thống thương mại điện tử bán/thuê sách. Phí làm thẻ và phí mượn là <strong>0₫</strong>. Chỉ áp dụng <strong>chế tài phạt trả muộn & bồi thường mất sách</strong> để đảm bảo công bằng xoay vòng tài liệu.
-                    </p>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="info-field h-100">
-                    <span class="info-field-label">Điều kiện tham gia & Ràng buộc ra trường</span>
-                    <div class="fw-semibold mb-1">Bắt buộc Thẻ SV / Mã cán bộ</div>
-                    <p class="small text-muted mb-0">
-                        Độc giả phải có <strong>MSSV / Mã cán bộ</strong> hợp lệ gắn với Khoa/Lớp. Khi sinh viên tốt nghiệp hoặc rời trường, <strong>bắt buộc hoàn trả hết sách và thanh toán hết phạt</strong> mới được cấp xác nhận ra trường.
-                    </p>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- STEP 2: Purpose of Each Function & Business Rules -->
-<div class="card mb-3">
-    <div class="card-header">
-        <strong>Bước 2. Mục đích từng chức năng chính & Quy tắc nghiệp vụ (Business Rules)</strong>
-    </div>
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table mb-0">
-                <thead>
-                    <tr>
-                        <th style="width:22%">Chức năng chính</th>
-                        <th style="width:36%">Mục đích nghiệp vụ (Tại sao phải làm?)</th>
-                        <th style="width:42%">Quy tắc nghiệp vụ & Ràng buộc thực thi trong hệ thống</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td class="fw-semibold">1. Quản lý Tài liệu / Đầu sách</td>
-                        <td class="text-muted">Biết chính xác thư viện có những giáo trình nào, xếp kệ nào, còn bao nhiêu bản và phân biệt tài liệu được mang về với bản lưu chiểu.</td>
-                        <td>
-                            • Phân loại lưu thông: <code>Cho mượn về</code> vs <code>Chỉ đọc tại chỗ</code> (Luận văn/đồ án tự động bị chặn mượn về).<br>
-                            • Giá bìa dùng làm căn cứ đền bù 100% khi mất sách.<br>
-                            • Không cho xóa đầu sách khi còn sinh viên đang mượn.
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="fw-semibold">2. Quản lý Độc giả & Xác nhận ra trường</td>
-                        <td class="text-muted">Xác định đúng đối tượng được hưởng quyền mượn miễn phí và kiểm soát hoàn trả tài sản nhà trường trước khi sinh viên tốt nghiệp.</td>
-                        <td>
-                            • Bắt buộc có <code>MSSV / Mã cán bộ</code> duy nhất, gắn Khoa, Lớp, Năm dự kiến TN.<br>
-                            • Hạn mức theo đối tượng: SV (5 cuốn/14 ngày), Cao học (7 cuốn/21 ngày), GV (10 cuốn/30 ngày).<br>
-                            • Chỉ cho phép <strong>Xác nhận ra trường</strong> khi <code>Sách đang mượn = 0</code> và <code>Nợ phạt = 0₫</code>.
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="fw-semibold">3. Quản lý Mượn – Trả & Chế tài</td>
-                        <td class="text-muted">Đảm bảo giáo trình quay vòng đúng hạn giữa các khóa sinh viên, tránh chiếm dụng sách lâu dài hoặc gây thất thoát kho.</td>
-                        <td>
-                            • Tự động <strong>chặn mượn mới</strong> nếu độc giả đang có sách quá hạn hoặc còn nợ phí phạt.<br>
-                            • Gia hạn tối đa 2 lần (không cho gia hạn khi đã quá hạn).<br>
-                            • Tự động cộng phạt trễ hạn <strong>{{ fine_per_day | vnd }}/ngày</strong>; ghi nhận thanh toán phạt để mở lại quyền mượn.
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="fw-semibold">4. Thống kê, Báo cáo & Cảnh báo</td>
-                        <td class="text-muted">Hỗ trợ Ban Giám hiệu và Thủ thư nắm bắt giáo trình thiếu bản sao theo từng khoa, giám sát nợ phạt và sinh viên sắp ra trường còn giữ sách.</td>
-                        <td>
-                            • Báo cáo mượn/trả 12 tháng, lượt mượn theo Khoa, top tài liệu.<br>
-                            • Cảnh báo tự động danh sách quá hạn và danh sách sinh viên khóa tốt nghiệp đang bị chặn ra trường.
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
-
-<!-- STEP 3: SOA Service Decomposition & Live Health -->
-<div class="card">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <strong>Bước 3. Phân rã Các Dịch vụ (SOA Services) & Trạng thái vận hành thực tế</strong>
-        <span class="text-muted small">Browser → API Gateway (:{{ gateway_port }}) → Service JWT → Domain Services</span>
-    </div>
-    <div class="card-body">
-        <div class="row g-3">
-            {% for svc in services %}
-            <div class="col-lg-6">
-                <div class="p-3 rounded h-100" style="border:1px solid var(--border);background:#FCFBF8">
-                    <div class="d-flex justify-content-between align-items-start mb-2">
-                        <div>
-                            <div class="fw-bold" style="color:var(--navy)">{{ svc.name }} <code class="ms-1">:{{ svc.port }}</code></div>
-                            <div class="small text-muted">{{ svc.vn_name }}</div>
+<div class="row g-3 mb-4">
+    {% for svc in services %}
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="fw-bold fs-6">{{ svc.name }}</span>
+                            <code>:{{ svc.port }}</code>
                         </div>
-                        {% if svc.health == 'ok' %}
-                        <span class="badge-tag tag-success">Hoạt động (HTTP OK)</span>
-                        {% elif svc.health == 'local' %}
-                        <span class="badge-tag tag-info">Chế độ Monolith</span>
-                        {% else %}
-                        <span class="badge-tag tag-danger">Ngưng kết nối</span>
-                        {% endif %}
+                        <div class="text-muted small mt-1">{{ svc.domain }}</div>
                     </div>
-                    <p class="small mb-2" style="color:var(--ink)">{{ svc.purpose }}</p>
-                    <div class="pt-2 border-top" style="border-color:var(--border-light)!important">
-                        <div class="info-field-label mb-1">Các Endpoint chính</div>
-                        <ul class="list-unstyled mb-0" style="font-size:12px">
-                            {% for ep in svc.endpoints %}
-                            <li class="mb-1"><span class="font-mono" style="background:none;padding:0;color:var(--navy)">{{ ep }}</span></li>
-                            {% endfor %}
-                        </ul>
-                    </div>
+                    {% if svc.health == 'ok' %}
+                    <span class="status-pill pill-emerald"><span class="dot"></span>Trực tuyến ({{ svc.latency_ms }} ms)</span>
+                    {% elif svc.health == 'local' %}
+                    <span class="status-pill pill-sky"><span class="dot"></span>Nội bộ ({{ svc.latency_ms }} ms)</span>
+                    {% else %}
+                    <span class="status-pill pill-rose"><span class="dot"></span>Mất kết nối</span>
+                    {% endif %}
+                </div>
+                <div class="mt-3 pt-3 border-top d-flex justify-content-between align-items-center small text-muted" style="border-color:var(--border-hairline)!important">
+                    <span>Định tuyến Gateway: <code>{{ svc.prefix }}</code></span>
+                    <span>Xác thực: <strong>HS256 Service JWT</strong></span>
                 </div>
             </div>
-            {% endfor %}
         </div>
+    </div>
+    {% endfor %}
+</div>
+
+<div class="card">
+    <div class="card-header">Bảng cấu hình định mức lưu thông theo nhóm thẻ</div>
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Nhóm độc giả</th>
+                    <th class="text-center">Số bản mượn tối đa</th>
+                    <th class="text-center">Chu kỳ mượn</th>
+                    <th class="text-center">Chu kỳ gia hạn</th>
+                    <th class="text-center">Số lần gia hạn</th>
+                    <th class="text-center">Thời hạn thẻ</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for key, rule in borrow_rules.items() %}
+                <tr>
+                    <td class="fw-semibold">{{ rule.label }}</td>
+                    <td class="text-center">{{ rule.max_loans }} cuốn</td>
+                    <td class="text-center">{{ rule.loan_days }} ngày</td>
+                    <td class="text-center">+{{ rule.renew_days }} ngày</td>
+                    <td class="text-center">{{ rule.max_renewals }} lần</td>
+                    <td class="text-center">{{ rule.card_months }} tháng</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 </div>
 {% endblock %}

@@ -1,0 +1,186 @@
+{% extends 'opac/base_opac.html' %}
+{% block title %}Tra cứu thẻ độc giả{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="pb-4 mb-4 border-bottom" style="border-color:var(--line)!important">
+                <div class="row align-items-end g-3">
+                    <div class="col-lg-5">
+                        <div class="text-uppercase fw-semibold mb-1" style="font-size:11px;letter-spacing:0.08em;color:var(--ink-muted)">Dịch vụ bạn đọc</div>
+                        <h1 class="font-editorial mb-1" style="font-size:30px">Tra cứu Thẻ Thư viện</h1>
+                        <p class="small mb-0" style="color:var(--ink-secondary)">Xem sách đang mượn, hạn trả, sách đặt trước và tiền phạt (nếu có).</p>
+                    </div>
+                    <div class="col-lg-7">
+                        <form method="POST" action="{{ url_for('opac.reader_lookup') }}" class="row g-2" data-no-pjax>
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <div class="col-sm-5">
+                                <label class="form-label">MSSV / Mã cán bộ</label>
+                                <input type="text" name="identifier" value="{{ identifier }}" class="form-control" placeholder="VD: 22110045" required>
+                            </div>
+                            <div class="col-sm-5">
+                                <label class="form-label">Email hoặc SĐT đăng ký</label>
+                                <input type="text" name="verify" value="{{ verify }}" class="form-control" placeholder="Xác thực chủ thẻ" required>
+                            </div>
+                            <div class="col-sm-2 d-grid align-self-end">
+                                <button type="submit" class="btn btn-primary">Xem thẻ</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            {% if result %}
+            {% set m = result.member %}
+            <div class="metric-grid mb-4">
+                <div class="metric-card">
+                    <div class="metric-top">
+                        <span class="metric-label">Chủ thẻ</span>
+                        {{ m.status | status_badge | safe }}
+                    </div>
+                    <div class="fw-bold fs-6">{{ m.full_name }}</div>
+                    <div class="metric-foot"><code>{{ m.student_id or m.member_code }}</code> • {{ m.member_type | member_type_label }}</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-top">
+                        <span class="metric-label">Sách đang mượn</span>
+                        <div class="metric-icon tone-blue"><i class="fas fa-book-reader"></i></div>
+                    </div>
+                    <div class="metric-value">{{ m.active_loans_count }} <span class="fs-6 text-muted fw-normal">/ {{ m.max_loans_allowed }} cuốn</span></div>
+                    <div class="metric-foot">Thời hạn mượn: {{ m.loan_duration_days }} ngày / lượt</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-top">
+                        <span class="metric-label">Tiền phạt chưa đóng</span>
+                        <div class="metric-icon {% if m.unpaid_fine > 0 %}tone-rose{% else %}tone-emerald{% endif %}"><i class="fas fa-receipt"></i></div>
+                    </div>
+                    <div class="metric-value {% if m.unpaid_fine > 0 %}text-danger{% endif %}">{{ m.unpaid_fine | vnd }}</div>
+                    <div class="metric-foot">{% if m.unpaid_fine > 0 %}Thanh toán tại quầy thư viện{% else %}Không có khoản phạt nào{% endif %}</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-top">
+                        <span class="metric-label">Thời hạn thẻ</span>
+                        <div class="metric-icon tone-indigo"><i class="fas fa-calendar-check"></i></div>
+                    </div>
+                    <div class="fw-bold fs-6">{{ m.membership_end | fmt_date }}</div>
+                    <div class="metric-foot">
+                        {% if m.overdue_loans_count > 0 %}
+                            <span class="text-danger fw-medium">Đang có {{ m.overdue_loans_count }} sách quá hạn</span>
+                        {% elif m.faculty %}
+                            {{ m.faculty }}
+                        {% else %}
+                            Thẻ hợp lệ
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Active Loans -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <span>Sách đang mượn ({{ result.active_loans | length }})</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Mã phiếu</th>
+                                <th>Tên sách</th>
+                                <th>Ngày mượn</th>
+                                <th>Hạn trả</th>
+                                <th>Tình trạng</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for l in result.active_loans %}
+                            <tr class="{% if l.is_overdue %}row-overdue{% endif %}">
+                                <td><code>{{ l.loan_code }}</code></td>
+                                <td class="fw-medium">{{ l.book.title if l.book else '—' }}</td>
+                                <td>{{ l.loan_date | fmt_date }}</td>
+                                <td class="{% if l.is_overdue %}text-danger fw-semibold{% endif %}">{{ l.due_date | fmt_date }}</td>
+                                <td>
+                                    {% if l.is_overdue %}
+                                    <span class="status-pill pill-rose">Quá hạn {{ l.days_overdue }} ngày</span>
+                                    {% else %}
+                                    <span class="status-pill pill-emerald">Còn {{ l.days_remaining }} ngày</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="5" class="text-center text-muted py-4">Bạn hiện không mượn cuốn sách nào.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            {% if result.reservations %}
+            <div class="card mb-4">
+                <div class="card-header">Sách đã đặt trước ({{ result.reservations | length }})</div>
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Mã đặt chỗ</th>
+                                <th>Tên sách</th>
+                                <th>Nơi nhận</th>
+                                <th>Hạn giữ tại quầy</th>
+                                <th>Trạng thái</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for r in result.reservations %}
+                            <tr>
+                                <td><code>{{ r.reservation_code }}</code></td>
+                                <td class="fw-medium">{{ r.book.title if r.book else '—' }}</td>
+                                <td><span class="code-chip">{{ r.book.location if r.book and r.book.location else 'Quầy thư viện' }}</span></td>
+                                <td>{{ r.expires_at | fmt_date }}</td>
+                                <td>{{ r.status | status_badge | safe }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if result.recent_history %}
+            <div class="card">
+                <div class="card-header">Lịch sử sách đã trả gần đây</div>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Mã phiếu</th>
+                                <th>Tên sách</th>
+                                <th>Ngày mượn</th>
+                                <th>Ngày trả</th>
+                                <th class="text-end">Tiền phạt</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for h in result.recent_history %}
+                            <tr>
+                                <td><code>{{ h.loan_code }}</code></td>
+                                <td>{{ h.book.title if h.book else '—' }}</td>
+                                <td>{{ h.loan_date | fmt_date }}</td>
+                                <td>{{ h.return_date | fmt_date }}</td>
+                                <td class="text-end">
+                                    {% if h.fine_amount and h.fine_amount > 0 %}
+                                    <span class="{% if not h.fine_paid %}text-danger fw-semibold{% else %}text-muted{% endif %}">{{ h.fine_amount | vnd }}</span>
+                                    <small class="ms-1">({{ 'Đã đóng' if h.fine_paid else 'Chưa đóng' }})</small>
+                                    {% else %}0₫{% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,16 +1,19 @@
 {% extends 'base.html' %}
-{% block title %}Quá hạn & Phí phạt{% endblock %}
-{% block page_title %}Danh sách tài liệu quá hạn trả{% endblock %}
+{% block title %}Quá hạn & Tiền phạt{% endblock %}
+{% block page_title %}Danh sách sách quá hạn{% endblock %}
 
 {% block content %}
-<div class="page-intro">
+<div class="section-header">
     <div>
-        <h2>Theo dõi quá hạn & Chế tài trả muộn</h2>
-        <p class="page-purpose">
-            Mục đích: Nhắc nhở độc giả hoàn trả giáo trình đúng hạn để duy trì nguồn sách xoay vòng cho toàn trường; tự động áp dụng mức phạt 2.000₫/ngày quá hạn và tạm chặn mượn mới.
-        </p>
+        <h2 class="section-title">Theo dõi Tài liệu Quá hạn</h2>
+        <p class="section-subtitle">Danh sách phiếu mượn đã quá hạn cần thu hồi</p>
     </div>
-    <span class="badge-tag tag-danger" style="font-size:13px;padding:6px 12px">{{ overdue_list | length }} phiếu đang quá hạn</span>
+    <div class="d-flex align-items-center gap-2">
+        <a href="{{ url_for('loans.export_loans', status='overdue') }}" class="btn btn-outline-secondary btn-sm" data-no-pjax>
+            <i class="fas fa-file-csv"></i>Xuất CSV
+        </a>
+        <span class="status-pill pill-rose">{{ overdue_list | length }} phiếu quá hạn</span>
+    </div>
 </div>
 
 {% if overdue_list %}
@@ -20,9 +23,9 @@
             <thead>
                 <tr>
                     <th>Mã phiếu</th>
-                    <th>Độc giả (MSSV)</th>
-                    <th>Khoa / Liên hệ</th>
-                    <th>Tài liệu đang giữ</th>
+                    <th>Độc giả</th>
+                    <th>Đơn vị & Liên hệ</th>
+                    <th>Tài liệu</th>
                     <th>Hạn trả</th>
                     <th>Số ngày trễ</th>
                     <th class="text-end">Phạt tạm tính</th>
@@ -34,33 +37,35 @@
                 <tr class="row-overdue">
                     <td><a href="{{ url_for('loans.detail', loan_id=item.loan.id) }}" class="text-decoration-none"><code>{{ item.loan.loan_code }}</code></a></td>
                     <td>
-                        <a href="{{ url_for('members.detail', member_id=item.loan.member.id) }}" class="fw-semibold text-decoration-none" style="color:var(--ink)">{{ item.loan.member.full_name if item.loan.member else '-' }}</a>
-                        {% if item.loan.member and item.loan.member.student_id %}<div class="text-muted" style="font-size:11.5px">MSSV: {{ item.loan.member.student_id }}</div>{% endif %}
+                        <a href="{{ url_for('members.detail', member_id=item.loan.member.id) }}" class="fw-semibold text-decoration-none text-dark">{{ item.loan.member.full_name if item.loan.member else '—' }}</a>
+                        {% if item.loan.member and item.loan.member.student_id %}<div class="text-muted small">{{ item.loan.member.student_id }}</div>{% endif %}
                     </td>
-                    <td style="font-size:12px">
-                        <div>{{ item.loan.member.faculty or '-' if item.loan.member else '-' }}</div>
-                        <div class="text-muted">{{ item.loan.member.phone or '' if item.loan.member else '' }}</div>
+                    <td class="small">
+                        <div>{{ item.loan.member.faculty or '—' if item.loan.member else '—' }}</div>
+                        <div class="text-muted">{{ item.loan.member.phone or item.loan.member.email if item.loan.member else '' }}</div>
                     </td>
-                    <td style="max-width:220px" class="text-truncate">{{ item.loan.book.title if item.loan.book else '-' }}</td>
-                    <td class="text-danger fw-medium text-nowrap">{{ item.loan.due_date.strftime('%d/%m/%Y') if (item.loan.due_date and item.loan.due_date is not string) else (item.loan.due_date[:10] if item.loan.due_date else '-') }}</td>
-                    <td><span class="badge-tag tag-danger">{{ item.days_overdue }} ngày</span></td>
+                    <td style="max-width:230px" class="text-truncate">{{ item.loan.book.title if item.loan.book else '—' }}</td>
+                    <td class="text-danger fw-semibold text-nowrap">{{ item.loan.due_date | fmt_date }}</td>
+                    <td><span class="status-pill pill-rose">{{ item.days_overdue }} ngày</span></td>
                     <td class="text-end text-danger fw-semibold text-nowrap">{{ item.estimated_fine | vnd }}</td>
-                    <td class="text-end text-nowrap"><a href="{{ url_for('loans.return_book', loan_id=item.loan.id) }}" class="btn btn-success btn-sm">Tiếp nhận trả</a></td>
+                    <td class="text-end text-nowrap">
+                        <a href="{{ url_for('loans.return_book', loan_id=item.loan.id) }}" class="btn btn-success btn-sm">Nhận trả</a>
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
-</div>
-<div class="mt-3 d-flex justify-content-between align-items-center small text-muted">
-    <span>Mức phạt quy định: 2.000₫ / ngày quá hạn (tự động cộng khi trả sách).</span>
-    <span>Tổng phạt tạm tính: <strong class="text-danger">{{ (overdue_list | map(attribute='estimated_fine') | sum) | vnd }}</strong></span>
+    <div class="card-footer d-flex justify-content-between align-items-center small text-muted">
+        <span>Mức phạt trả muộn: 2.000₫ / ngày</span>
+        <span>Tổng phạt tạm tính: <strong class="text-danger">{{ (overdue_list | map(attribute='estimated_fine') | sum) | vnd }}</strong></span>
+    </div>
 </div>
 {% else %}
 <div class="empty-state">
-    <i class="fas fa-circle-check d-block" style="color:var(--forest)"></i>
-    <h6 class="fw-semibold">Không có tài liệu quá hạn</h6>
-    <p class="small mb-0">Toàn bộ phiếu mượn hiện tại đều đang trong thời hạn cho phép.</p>
+    <div class="empty-state-icon" style="color:var(--emerald-fg);background:var(--emerald-bg)"><i class="fas fa-circle-check"></i></div>
+    <h6 class="fw-bold text-dark">Không có tài liệu quá hạn</h6>
+    <p class="small mb-0">Tất cả các phiếu đang lưu thông đều nằm trong thời hạn cho phép.</p>
 </div>
 {% endif %}
 {% endblock %}

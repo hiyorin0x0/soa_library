@@ -1,58 +1,56 @@
-# Hệ thống Quản lý Thư viện Trường Đại học — Kiến trúc SOA
+# LibCore University — Hệ thống Quản lý Thư viện Đại học (Kiến trúc SOA)
 
-Hệ thống quản lý lưu thông tài liệu nội bộ **Thư viện Trường Đại học** được xây dựng theo **Kiến trúc Hướng Dịch vụ (SOA)** với một **API Gateway** và **4 dịch vụ miền độc lập** có thể khởi chạy riêng tiến trình.
+Hệ thống quản lý danh mục học thuật, lưu thông tài liệu, đặt giữ chỗ trực tuyến (OPAC) và đối soát tốt nghiệp dành riêng cho **Thư viện Trung tâm Trường Đại học**, triển khai theo **Kiến trúc Hướng Dịch vụ (SOA)** gồm **API Gateway** và **4 dịch vụ miền độc lập**.
 
 ---
 
-## 1. Mục đích & Phạm vi bài toán (Scope)
+## Quy trình Phân tích & Thiết kế Dịch vụ (Service Design)
 
-- **Phạm vi khoanh vùng:** Thư viện **Trường Đại học** — chỉ phục vụ nội bộ **Sinh viên đại học, Học viên cao học và Giảng viên / Cán bộ** của nhà trường (không xây dựng chung chung cho thư viện công cộng hay cửa hàng bán sách).
-- **Mô hình hoạt động:** **Miễn phí khuyến khích đọc** (phí làm thẻ 0₫, phí mượn sách 0₫). Hệ thống chỉ thu **phí chế tài** khi trả muộn hoặc làm mất tài liệu nhằm đảm bảo công bằng xoay vòng giáo trình.
-- **Điều kiện tham gia:** Bắt buộc đăng ký bằng **Mã số sinh viên (MSSV)** hoặc **Mã cán bộ (MCB)** gắn với Khoa, Lớp và Năm dự kiến tốt nghiệp.
+### Bước 1. Xác định Mục đích & Khoanh vùng Phạm vi (Scope)
+- **Đối tượng & Phạm vi:** Khoanh vùng cụ thể cho **Thư viện Trường Đại học** — phục vụ nội bộ **Sinh viên đại học, Học viên sau đại học và Giảng viên / Cán bộ** trong trường (không xây dựng dàn trải cho thư viện công cộng hay sàn thương mại điện tử bán sách).
+- **Mô hình hoạt động:** **Miễn phí khuyến khích đọc và nghiên cứu** (0₫ phí cấp thẻ, 0₫ phí mượn giáo trình). Hệ thống chỉ hạch toán **phí chế tài** (trả muộn, làm hư hỏng nặng hoặc làm mất sách) để bảo toàn tài sản công và duy trì vòng quay học liệu công bằng giữa các khóa.
+- **Điều kiện tham gia:** Định danh bắt buộc bằng **Mã số sinh viên (MSSV)** hoặc **Mã cán bộ (MCB)** gắn với Khoa/Viện, Lớp và Khóa tốt nghiệp.
 
-## 2. Mục đích từng chức năng & Quy tắc nghiệp vụ (Business Rules)
+### Bước 2. Mục đích từng Chức năng & Quy tắc Nghiệp vụ (Business Rules)
 
-| Chức năng | Mục đích nghiệp vụ | Quy tắc nghiệp vụ áp dụng trong code |
+| Phân hệ chức năng | Bản chất & Mục đích nghiệp vụ | Quy tắc & Ràng buộc thực thi trong code |
 |---|---|---|
-| **Quản lý Tài liệu** | Kiểm soát kho giáo trình, vị trí kệ, số bản sao và tách biệt tài liệu cho mượn với bản lưu chiểu | Phân loại `Cho mượn về` vs `Chỉ đọc tại chỗ` (Luận văn/Đồ án bị chặn mượn về); giá bìa là căn cứ đền bù 100% khi mất sách; không xóa sách đang có người mượn |
-| **Quản lý Độc giả & Ra trường** | Xác thực đúng người học/giảng viên nội bộ và đảm bảo thu hồi đủ tài sản trường trước khi tốt nghiệp | Bắt buộc MSSV/MCB duy nhất; hạn mức **SV: 5 cuốn/14 ngày**, **Cao học: 7 cuốn/21 ngày**, **GV: 10 cuốn/30 ngày**; chỉ **Xác nhận ra trường** khi `0 sách đang mượn` và `0₫ nợ phạt` |
-| **Lưu thông Mượn – Trả & Phạt** | Duy trì vòng quay giáo trình đúng hạn giữa các khóa sinh viên | Tự động **chặn mượn mới** khi có sách quá hạn hoặc nợ phạt; gia hạn tối đa 2 lần (chặn khi đã quá hạn); phạt trễ hạn **2.000₫/ngày**; hỗ trợ thanh toán phạt mở khóa quyền mượn |
-| **Thống kê & Cảnh báo** | Hỗ trợ thủ thư và nhà trường bổ sung sách theo nhu cầu khoa và đôn đốc thu hồi sách | Thống kê lượt mượn 12 tháng, theo Khoa, top sách; cảnh báo quá hạn & sinh viên khóa tốt nghiệp đang bị chặn ra trường |
+| **1. Quản lý Danh mục & Cổng OPAC** | Kiểm soát chính xác vị trí kệ, số lượng bản sao và giúp sinh viên tự tra cứu kho sách mọi lúc | • Phân tách `Mượn về nhà` và `Đọc tại chỗ` (Luận văn/khóa luận lưu chiểu bị chặn mượn về).<br>• Đảm bảo bất biến tồn kho: `Tổng bản = Sẵn trên kệ + Đang mượn + Đang giữ tại quầy`; chặn giảm tổng bản thấp hơn số bản đang lưu thông.<br>• Chặn xóa cứng đầu sách đã phát sinh lịch sử lưu thông để bảo toàn sổ đối chiếu. |
+| **2. Quản lý Độc giả & Xét Tốt nghiệp** | Xác thực tư cách thành viên nhà trường và thu hồi triệt để tài sản trường trước khi sinh viên ra trường | • Bắt buộc MSSV/MCB và Email hợp lệ.<br>• Định mức theo nhóm thẻ: **Sinh viên** (5 cuốn / 14 ngày / thẻ 4 năm), **Cao học** (7 cuốn / 21 ngày / thẻ 2 năm), **Giảng viên** (10 cuốn / 30 ngày / thẻ 5 năm).<br>• **Đối soát tốt nghiệp** (chỉ áp dụng SV/HV): Chỉ cấp xác nhận khi đồng thời `0 sách đang giữ` và `0₫ công nợ phí`. |
+| **3. Lưu thông, Đặt giữ chỗ & Chế tài** | Duy trì luân chuyển giáo trình đúng hạn, ưu tiên người xếp hàng chờ và xử lý tự động các vi phạm | • **Chặn mượn mới / gia hạn** khi thẻ hết hạn, có sách quá hạn hoặc còn nợ phí.<br>• **Hàng đợi Đặt giữ chỗ (Hold Queue):** Giữ bản sẵn tại quầy 3 ngày hoặc xếp hàng FIFO khi hết sách; tự động chuyển bản vừa trả cho người chờ đầu tiên; chặn gia hạn nếu sách đang có người đặt chờ.<br>• **Tự động tính phí:** Trễ hạn `2.000₫/ngày`; hư hỏng nặng `30% giá bìa` (tối thiểu `20.000₫`); làm mất `100% giá bìa + phí quá hạn` và trừ tồn kho. |
+| **4. Thống kê, Phân tích & Cảnh báo** | Cung cấp căn cứ dữ liệu để bổ sung giáo trình cho các khoa có nhu cầu cao và đôn đốc thu hồi nợ | • Biểu đồ lưu thông 12 tháng, tỷ trọng chuyên ngành, thống kê theo Khoa/Viện, xuất báo cáo CSV.<br>• Cảnh báo tự động: phiếu quá hạn, sách đến hạn hôm nay, sách giữ tại quầy chờ nhận, sinh viên khóa tốt nghiệp đang vướng nghĩa vụ. |
 
-## 3. Phân rã Dịch vụ SOA (Service Design)
+### Bước 3. Phân rã Dịch vụ SOA (Service Decomposition)
 
 ```text
-Browser ──> API Gateway :5000 ──(Service JWT / HTTP)──> Books Service   :5001
-                              ├───────────────────────> Members Service :5002
-                              ├───────────────────────> Loans Service   :5003
-                              └───────────────────────> Reports Service :5004
+Browser (Staff UI & Public OPAC)
+        │
+        ▼
+  API Gateway (:5000) ──[HS256 Service JWT]──► Books Service   (:5001)  /api/v1/books/*
+                      ├──[HS256 Service JWT]──► Members Service (:5002)  /api/v1/members/*
+                      ├──[HS256 Service JWT]──► Loans Service   (:5003)  /api/v1/loans/*
+                      └──[HS256 Service JWT]──► Reports Service (:5004)  /api/v1/reports/*
 ```
-
-| Dịch vụ | Cổng | Trách nhiệm & Endpoint tiêu biểu |
-|---|---:|---|
-| **API Gateway + Web UI** | `5000` | Xác thực phiên/JWT, định tuyến `/api/v1/*`, giao diện nghiệp vụ thủ thư |
-| **Books Service** | `5001` | `/api/v1/books/*` — Kho tài liệu, thể loại/ngành, quy chế lưu thông |
-| **Members Service** | `5002` | `/api/v1/members/*`, `/api/v1/members/clearance`, `POST /api/v1/members/<id>/clearance` |
-| **Loans Service** | `5003` | `/api/v1/loans/*`, `POST /<id>/return`, `POST /<id>/pay-fine`, `POST /<id>/renew`, `POST /<id>/lost` |
-| **Reports Service** | `5004` | `/api/v1/reports/dashboard`, `/overdue`, `/faculty-loans`, `/alerts` |
 
 ---
 
-## Cách khởi chạy
+## Hướng dẫn Khởi chạy
 
-### 1. Khởi tạo lại dữ liệu mẫu Thư viện Đại học
+### 1. Khởi tạo cơ sở dữ liệu mẫu
 ```powershell
 venv\Scripts\python.exe run.py reset-seed
 ```
 
-### 2. Chạy toàn bộ hệ thống SOA (Gateway + 4 Services)
+### 2. Khởi chạy toàn bộ hệ thống SOA (Gateway + 4 Services)
 ```powershell
 venv\Scripts\python.exe run.py all
 ```
-Truy cập **http://localhost:5000**.
 
-### Tài khoản demo
-| Tài khoản | Mật khẩu | Vai trò |
+- **Quầy nghiệp vụ thủ thư:** http://localhost:5000/login
+- **Cổng tra cứu OPAC (Sinh viên / Giảng viên):** http://localhost:5000/catalog
+
+### Tài khoản thử nghiệm (Môi trường phát triển)
+| Tài khoản | Mật khẩu | Phân quyền |
 |---|---|---|
 | `admin` | `Admin@123` | Quản trị hệ thống |
-| `librarian` | `Lib@123` | Cán bộ thủ thư |
+| `librarian` | `Lib@123` | Cán bộ lưu thông |

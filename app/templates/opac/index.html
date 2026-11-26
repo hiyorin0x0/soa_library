@@ -1,0 +1,202 @@
+{% extends 'opac/base_opac.html' %}
+{% block title %}Danh mục sách & giáo trình{% endblock %}
+
+{% block content %}
+<section class="opac-header-band">
+    <div class="container">
+        <div class="row align-items-end g-4">
+            <div class="col-lg-5">
+                <div class="text-uppercase fw-semibold mb-1" style="font-size:11px;letter-spacing:0.08em;color:var(--ink-muted)">
+                    Mục lục trực tuyến · {{ stats.total_titles }} đầu sách ({{ stats.available_copies }} cuốn sẵn có)
+                </div>
+                <h1 class="font-editorial mb-0" style="font-size:clamp(28px, 3.5vw, 38px);line-height:1.15">
+                    Kho Giáo trình & Tài liệu Học thuật
+                </h1>
+            </div>
+            <div class="col-lg-7">
+                <form method="GET" action="{{ url_for('opac.index') }}" class="opac-search-bar">
+                    <i class="fas fa-magnifying-glass ms-3 d-none d-sm-inline" style="color:var(--ink-muted);font-size:13px"></i>
+                    <input type="text" name="q" value="{{ search }}" placeholder="Tìm tên sách, tác giả, mã ISBN, kệ sách...">
+                    {% if selected_type %}<input type="hidden" name="type" value="{{ selected_type }}">{% endif %}
+                    {% if selected_availability %}<input type="hidden" name="availability" value="{{ selected_availability }}">{% endif %}
+                    {% if sort_by != 'title' %}<input type="hidden" name="sort" value="{{ sort_by }}">{% endif %}
+                    <select name="category" aria-label="Chuyên ngành">
+                        <option value="">Mọi chuyên ngành</option>
+                        {% for cat in categories %}
+                        <option value="{{ cat.id }}" {% if selected_category == cat.id %}selected{% endif %}>{{ cat.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" class="btn btn-primary px-3">Tìm kiếm</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="container py-4">
+    <div class="row g-4 g-xl-5">
+        <!-- LEFT FACET SIDEBAR (Clean, Never Overflows, Accurate Counts) -->
+        <aside class="col-lg-3">
+            <div class="position-sticky" style="top:80px">
+                <div class="facet-group pb-3 border-bottom" style="border-color:var(--line)!important">
+                    {% set next_avail = '' if selected_availability == 'available' else 'available' %}
+                    <a href="{{ url_for('opac.index', q=search, category=selected_category or '', type=selected_type, availability=next_avail, sort=sort_by) }}"
+                       class="switch-link {% if selected_availability == 'available' %}is-on{% endif %}">
+                        <span class="switch-track"></span>
+                        <span>Chỉ hiện sách còn cuốn</span>
+                    </a>
+                </div>
+
+                <div class="facet-group">
+                    <div class="facet-heading">Hình thức sử dụng</div>
+                    <ul class="facet-list">
+                        <li class="facet-item">
+                            <a href="{{ url_for('opac.index', q=search, category=selected_category or '', availability=selected_availability, sort=sort_by) }}"
+                               class="{% if not selected_type %}active{% endif %}">
+                                <span>Tất cả tài liệu</span>
+                                <span class="facet-count">{{ facets.all }}</span>
+                            </a>
+                        </li>
+                        <li class="facet-item">
+                            <a href="{{ url_for('opac.index', q=search, category=selected_category or '', type='borrowable', availability=selected_availability, sort=sort_by) }}"
+                               class="{% if selected_type == 'borrowable' %}active{% endif %}">
+                                <span>Cho mượn mang về</span>
+                                <span class="facet-count">{{ facets.borrowable }}</span>
+                            </a>
+                        </li>
+                        <li class="facet-item">
+                            <a href="{{ url_for('opac.index', q=search, category=selected_category or '', type='reference_only', availability=selected_availability, sort=sort_by) }}"
+                               class="{% if selected_type == 'reference_only' %}active{% endif %}">
+                                <span>Đọc tại thư viện</span>
+                                <span class="facet-count">{{ facets.reference_only }}</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="facet-group mb-0">
+                    <div class="facet-heading">Chuyên ngành</div>
+                    <ul class="facet-list">
+                        <li class="facet-item">
+                            <a href="{{ url_for('opac.index', q=search, type=selected_type, availability=selected_availability, sort=sort_by) }}"
+                               class="{% if not selected_category %}active{% endif %}">
+                                <span>Tất cả chuyên ngành</span>
+                                <span class="facet-count">{{ stats.total_titles }}</span>
+                            </a>
+                        </li>
+                        {% for cat in categories %}
+                        <li class="facet-item">
+                            <a href="{{ url_for('opac.index', q=search, category=cat.id, type=selected_type, availability=selected_availability, sort=sort_by) }}"
+                               class="{% if selected_category == cat.id %}active{% endif %}">
+                                <span class="d-flex align-items-center gap-2 text-truncate">
+                                    <span class="rounded-circle flex-shrink-0" style="width:7px;height:7px;background:{{ cat.color }}"></span>
+                                    <span class="text-truncate">{{ cat.name }}</span>
+                                </span>
+                                <span class="facet-count">{{ cat.book_count if cat.book_count is defined else cat.books.count() }}</span>
+                            </a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </aside>
+
+        <!-- RIGHT BOOKSHELF -->
+        <div class="col-lg-9">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 pb-3 mb-4 border-bottom" style="border-color:var(--line)!important">
+                <div class="small" style="color:var(--ink-secondary)">
+                    Hiển thị <strong class="text-dark">{{ books | length }}</strong> trên <strong class="text-dark">{{ pagination.total }}</strong> đầu sách
+                    {% if search %} cho từ khóa <em>"{{ search }}"</em>{% endif %}
+                    {% if search or selected_category or selected_type or selected_availability %}
+                    · <a href="{{ url_for('opac.index') }}" class="text-dark">Xóa bộ lọc</a>
+                    {% endif %}
+                </div>
+
+                <form method="GET" class="d-flex align-items-center gap-2">
+                    <input type="hidden" name="q" value="{{ search }}">
+                    {% if selected_category %}<input type="hidden" name="category" value="{{ selected_category }}">{% endif %}
+                    {% if selected_type %}<input type="hidden" name="type" value="{{ selected_type }}">{% endif %}
+                    {% if selected_availability %}<input type="hidden" name="availability" value="{{ selected_availability }}">{% endif %}
+                    <label class="small text-muted mb-0 text-nowrap" for="opacSort">Sắp xếp</label>
+                    <select id="opacSort" name="sort" class="form-select form-select-sm" onchange="this.form.submit()" style="width:auto;min-width:165px">
+                        <option value="title" {% if sort_by == 'title' %}selected{% endif %}>Tên sách (A → Z)</option>
+                        <option value="publish_year" {% if sort_by == 'publish_year' %}selected{% endif %}>Xuất bản mới nhất</option>
+                        <option value="available_copies" {% if sort_by == 'available_copies' %}selected{% endif %}>Còn nhiều sách nhất</option>
+                    </select>
+                </form>
+            </div>
+
+            {% if books %}
+            <div class="row g-4">
+                {% for book in books %}
+                <div class="col-6 col-md-4 col-xl-3">
+                    <a href="{{ url_for('opac.book_detail', book_id=book.id) }}" class="shelf-book">
+                        <div class="book-jacket">
+                            {% if book.cover_image %}
+                            <img src="{{ url_for('static', filename='img/books/' + book.cover_image) }}" alt="{{ book.title }}">
+                            {% else %}
+                            <div>
+                                <div class="book-jacket-band" style="background:{{ book.category.color if book.category else '#161615' }}"></div>
+                                <div class="book-jacket-cat">{{ book.category.name if book.category else 'Tài liệu học thuật' }}</div>
+                            </div>
+                            <div class="book-jacket-title">{{ book.title }}</div>
+                            <div class="book-jacket-foot">{{ book.author }}</div>
+                            {% endif %}
+                        </div>
+
+                        <h3 class="shelf-book-title">{{ book.title }}</h3>
+                        <div class="shelf-book-author">{{ book.author }}</div>
+
+                        <div class="shelf-book-meta">
+                            {% if (book.circulation_type or 'borrowable') == 'reference_only' %}
+                                <span class="avail-dot reading-room"></span>
+                                <span>Đọc tại phòng ({{ book.available_copies }} cuốn)</span>
+                            {% elif book.available_copies > 0 %}
+                                <span class="avail-dot in-stock"></span>
+                                <span style="color:var(--pine);font-weight:500">Còn {{ book.available_copies }}/{{ book.total_copies }} cuốn</span>
+                            {% else %}
+                                <span class="avail-dot out-stock"></span>
+                                <span style="color:var(--ochre)">Tạm hết · Đặt trước</span>
+                            {% endif %}
+                            <span>·</span>
+                            <span style="font-family:'JetBrains Mono',monospace;font-size:11px">{{ book.location or 'Quầy' }}</span>
+                        </div>
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+
+            {% if pagination.pages > 1 %}
+            <nav class="mt-5">
+                <ul class="pagination justify-content-center">
+                    <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('opac.index', page=pagination.prev_num, q=search, category=selected_category or '', type=selected_type, availability=selected_availability, sort=sort_by) }}">Trước</a>
+                    </li>
+                    {% for p in pagination.iter_pages(left_edge=2, right_edge=2, left_current=2, right_current=2) %}
+                        {% if p %}
+                        <li class="page-item {% if p == pagination.page %}active{% endif %}">
+                            <a class="page-link" href="{{ url_for('opac.index', page=p, q=search, category=selected_category or '', type=selected_type, availability=selected_availability, sort=sort_by) }}">{{ p }}</a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled"><span class="page-link">…</span></li>
+                        {% endif %}
+                    {% endfor %}
+                    <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('opac.index', page=pagination.next_num, q=search, category=selected_category or '', type=selected_type, availability=selected_availability, sort=sort_by) }}">Sau</a>
+                    </li>
+                </ul>
+            </nav>
+            {% endif %}
+
+            {% else %}
+            <div class="empty-state">
+                <div class="empty-state-icon"><i class="fas fa-book-open"></i></div>
+                <h6 class="fw-semibold text-dark mb-1">Không tìm thấy đầu sách phù hợp</h6>
+                <p class="small mb-3">Hãy thử từ khóa ngắn hơn hoặc bỏ bớt bộ lọc đang chọn.</p>
+                <a href="{{ url_for('opac.index') }}" class="btn btn-outline-secondary btn-sm">Xem toàn bộ danh mục</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}

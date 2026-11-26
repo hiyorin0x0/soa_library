@@ -32,7 +32,7 @@ def create_service_app(service_name, config_name=None):
 
     # The legacy shared database has ORM relations across domains; load their models
     # in each process so SQLAlchemy can configure mappings consistently.
-    from app.models import book, member, loan, user  # noqa: F401
+    from app.models import book, member, loan, user, reservation  # noqa: F401
 
     module_name, blueprint_name, prefix = SERVICE_BLUEPRINTS[service_name]
     module = __import__(module_name, fromlist=[blueprint_name])

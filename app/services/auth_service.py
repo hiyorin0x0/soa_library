@@ -1,38 +1,30 @@
 """
 Auth Service - SOA Service Layer
-Handles authentication, authorization, and user management
+Handles staff authentication, RBAC authorization, and account safety
 """
 from datetime import datetime
-from flask import current_app
 from flask_login import login_user, logout_user
+from sqlalchemy import func
 from app.extensions import db
 from app.models.user import User
 
 
 class AuthService:
-    """
-    Service responsible for authentication and authorization.
-    """
+    """Service responsible for staff authentication and account lifecycle."""
 
     @staticmethod
     def verify_credentials(username_or_email, password):
-        """
-        Verify credentials without establishing a browser session.
-        Returns: (User, error_message)
-        """
+        ident = (username_or_email or '').strip()
         user = User.query.filter(
-            (User.username == username_or_email) | (User.email == username_or_email)
+            (func.lower(User.username) == ident.lower()) | (func.lower(User.email) == ident.lower())
         ).first()
 
         if not user:
-            return None, "Tài khoản không tồn tại."
-
+            return None, "Thông tin đăng nhập không chính xác."
         if not user.is_active:
-            return None, "Tài khoản đã bị vô hiệu hóa. Vui lòng liên hệ quản trị viên."
-
+            return None, "Tài khoản này đã tạm ngừng kích hoạt. Vui lòng liên hệ quản trị viên."
         if not user.check_password(password):
-            return None, "Mật khẩu không chính xác."
-
+            return None, "Thông tin đăng nhập không chính xác."
         return user, None
 
     @staticmethod
@@ -42,38 +34,36 @@ class AuthService:
 
     @staticmethod
     def authenticate(username_or_email, password, remember=False):
-        """Authenticate a user and establish the existing browser session."""
         user, error = AuthService.verify_credentials(username_or_email, password)
         if error:
             return None, error
-
-        # Update last login
         AuthService.record_login(user)
-
         login_user(user, remember=remember)
         return user, None
 
     @staticmethod
     def logout():
-        """Logout current user"""
         logout_user()
 
     @staticmethod
     def create_user(username, email, password, role='librarian', full_name=''):
-        """
-        Create a new staff user.
-        Returns: (User, error_message)
-        """
-        if User.query.filter_by(username=username).first():
+        username = (username or '').strip()
+        email = (email or '').strip().lower()
+        full_name = (full_name or '').strip()
+        if not username or not email or not password:
+            return None, "Vui lòng điền đầy đủ thông tin tài khoản."
+        if len(password) < 6:
+            return None, "Mật khẩu phải có tối thiểu 6 ký tự."
+        if User.query.filter(func.lower(User.username) == username.lower()).first():
             return None, f"Tên đăng nhập '{username}' đã tồn tại."
-        if User.query.filter_by(email=email).first():
-            return None, f"Email '{email}' đã được đăng ký."
+        if User.query.filter(func.lower(User.email) == email).first():
+            return None, f"Email '{email}' đã được sử dụng."
 
         user = User(
             username=username,
             email=email,
             full_name=full_name or username,
-            role=role,
+            role=role if role in ('admin', 'librarian') else 'librarian',
         )
         user.set_password(password)
         db.session.add(user)
@@ -82,11 +72,10 @@ class AuthService:
 
     @staticmethod
     def change_password(user, old_password, new_password):
-        """Change user password"""
         if not user.check_password(old_password):
-            return False, "Mật khẩu hiện tại không đúng."
-        if len(new_password) < 6:
-            return False, "Mật khẩu mới phải có ít nhất 6 ký tự."
+            return False, "Mật khẩu hiện tại không chính xác."
+        if not new_password or len(new_password) < 6:
+            return False, "Mật khẩu mới phải có tối thiểu 6 ký tự."
         user.set_password(new_password)
         user.updated_at = datetime.utcnow()
         db.session.commit()
@@ -94,21 +83,24 @@ class AuthService:
 
     @staticmethod
     def get_all_users():
-        return User.query.order_by(User.full_name).all()
+        return User.query.order_by(User.role.asc(), User.full_name.asc()).all()
 
     @staticmethod
-    def toggle_user_status(user_id):
-        """Toggle user active status"""
-        user = User.query.get_or_404(user_id)
+    def toggle_user_status(user_id, actor_id=None):
+        user = db.get_or_404(User, user_id)
+        if actor_id and user.id == actor_id:
+            return None, "Không thể tự khóa tài khoản đang đăng nhập."
+        if user.is_active and user.role == 'admin':
+            active_admins = User.query.filter_by(role='admin', is_active=True).count()
+            if active_admins <= 1:
+                return None, "Phải duy trì ít nhất 1 quản trị viên đang hoạt động."
         user.is_active = not user.is_active
+        user.updated_at = datetime.utcnow()
         db.session.commit()
-        return user
+        return user, None
 
 
 class PermissionService:
-    """
-    Centralized permission checking.
-    """
     ROLES = {
         'admin': ['manage_users', 'manage_books', 'manage_members', 'manage_loans',
                   'view_reports', 'delete_records', 'manage_categories'],
@@ -117,14 +109,12 @@ class PermissionService:
 
     @staticmethod
     def has_permission(user, permission):
-        """Check if user has a specific permission"""
         if not user or not user.is_active:
             return False
         return permission in PermissionService.ROLES.get(user.role, [])
 
     @staticmethod
     def require_admin(f):
-        """Decorator to require admin role"""
         from functools import wraps
         from flask import abort
         from flask_login import current_user

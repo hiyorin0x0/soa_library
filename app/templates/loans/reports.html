@@ -1,48 +1,69 @@
 {% extends 'base.html' %}
-{% block title %}Báo cáo thống kê{% endblock %}
-{% block page_title %}Báo cáo & Thống kê Thư viện Đại học{% endblock %}
+{% block title %}Thống kê & Phân tích{% endblock %}
+{% block page_title %}Thống kê & Phân tích{% endblock %}
 
 {% block content %}
-<div class="page-intro">
+<div class="section-header">
     <div>
-        <h2>Báo cáo lưu thông & Hiệu suất khai thác kho</h2>
-        <p class="page-purpose">Mục đích: Cung cấp số liệu theo tháng, theo khoa và theo đầu giáo trình giúp thư viện quyết định bổ sung bản sao cho các môn học có nhu cầu cao.</p>
+        <h2 class="section-title">Phân tích Lưu thông & Khai thác Học liệu</h2>
+        <p class="section-subtitle">Tổng hợp tần suất mượn trả 12 tháng, mức độ sử dụng theo khoa và danh mục tài liệu</p>
     </div>
-    <a href="{{ url_for('dashboard.architecture') }}" class="btn btn-outline-secondary btn-sm">Xem nguồn Reports Service</a>
+    <a href="{{ url_for('loans.export_loans') }}" class="btn btn-outline-secondary btn-sm" data-no-pjax>
+        <i class="fas fa-file-csv"></i>Xuất dữ liệu lưu thông
+    </a>
 </div>
 
-<div class="kpi-grid">
-    <div class="kpi-cell"><div class="kpi-label">Tổng phiếu lưu thông</div><div class="kpi-value is-navy">{{ loan_stats.total }}</div><div class="kpi-meta">{{ loan_stats.borrowed }} đang mượn</div></div>
-    <div class="kpi-cell"><div class="kpi-label">Đã hoàn trả</div><div class="kpi-value is-forest">{{ loan_stats.returned }}</div><div class="kpi-meta">{{ loan_stats.lost }} trường hợp báo mất</div></div>
-    <div class="kpi-cell"><div class="kpi-label">Đang quá hạn</div><div class="kpi-value is-danger">{{ loan_stats.overdue }}</div><div class="kpi-meta">Đang bị chặn mượn mới</div></div>
-    <div class="kpi-cell"><div class="kpi-label">Tổng phạt & Bồi thường</div><div class="kpi-value is-ochre" style="font-size:22px">{{ loan_stats.total_fine | vnd }}</div><div class="kpi-meta">Chưa thu: <strong class="text-danger">{{ loan_stats.unpaid_fine | vnd }}</strong></div></div>
+<div class="metric-grid">
+    <div class="metric-card">
+        <div class="metric-top"><span class="metric-label">Tổng phiếu phát hành</span><div class="metric-icon tone-blue"><i class="fas fa-file-lines"></i></div></div>
+        <div class="metric-value" data-count="{{ loan_stats.total }}">{{ loan_stats.total }}</div>
+        <div class="metric-foot">{{ loan_stats.borrowed }} phiếu đang mượn</div>
+    </div>
+    <div class="metric-card">
+        <div class="metric-top"><span class="metric-label">Đã hoàn trả</span><div class="metric-icon tone-emerald"><i class="fas fa-check-double"></i></div></div>
+        <div class="metric-value" data-count="{{ loan_stats.returned }}">{{ loan_stats.returned }}</div>
+        <div class="metric-foot">{{ loan_stats.lost }} trường hợp báo mất</div>
+    </div>
+    <div class="metric-card">
+        <div class="metric-top"><span class="metric-label">Đang quá hạn</span><div class="metric-icon tone-rose"><i class="fas fa-clock"></i></div></div>
+        <div class="metric-value {% if loan_stats.overdue > 0 %}text-danger{% endif %}" data-count="{{ loan_stats.overdue }}">{{ loan_stats.overdue }}</div>
+        <div class="metric-foot">{{ loan_stats.active_reservations or 0 }} yêu cầu đặt giữ chỗ</div>
+    </div>
+    <div class="metric-card">
+        <div class="metric-top"><span class="metric-label">Tổng phạt & Đền bù</span><div class="metric-icon tone-amber"><i class="fas fa-coins"></i></div></div>
+        <div class="metric-value" style="font-size:23px">{{ loan_stats.total_fine | vnd }}</div>
+        <div class="metric-foot">Chưa thu: <strong class="text-danger">{{ loan_stats.unpaid_fine | vnd }}</strong></div>
+    </div>
 </div>
 
-<div class="row g-3 mb-3">
+<div class="row g-3 mb-4">
     <div class="col-lg-8">
         <div class="card h-100">
-            <div class="card-header">Lượt mượn / trả theo tháng (12 tháng)</div>
-            <div class="card-body"><canvas id="monthlyChart" height="240"></canvas></div>
+            <div class="card-header">Chu kỳ lưu thông 12 tháng</div>
+            <div class="card-body"><div style="height:260px"><canvas id="repMonthlyChart"></canvas></div></div>
         </div>
     </div>
     <div class="col-lg-4">
         <div class="card h-100">
-            <div class="card-header">Phân bổ đầu sách theo danh mục</div>
-            <div class="card-body d-flex align-items-center justify-content-center"><canvas id="categoryChart" height="240"></canvas></div>
+            <div class="card-header">Tỷ trọng đầu sách theo chuyên ngành</div>
+            <div class="card-body d-flex align-items-center justify-content-center"><div style="height:260px;width:100%"><canvas id="repCatChart"></canvas></div></div>
         </div>
     </div>
 </div>
 
-<div class="card mb-3">
-    <div class="card-header">Mức độ sử dụng thư viện theo Khoa / Đơn vị</div>
+<div class="card mb-4">
+    <div class="card-header">Thống kê lượt mượn theo Khoa / Viện đào tạo</div>
     <div class="table-responsive">
         <table class="table table-hover">
             <thead><tr><th>Khoa / Viện</th><th class="text-end">Tổng lượt mượn</th></tr></thead>
             <tbody>
                 {% for item in faculty_stats %}
-                <tr><td class="fw-medium">{{ item.faculty }}</td><td class="text-end"><span class="badge-tag tag-navy">{{ item.loan_count }} lượt</span></td></tr>
+                <tr>
+                    <td class="fw-semibold">{{ item.faculty }}</td>
+                    <td class="text-end"><span class="status-pill pill-indigo">{{ item.loan_count }} lượt</span></td>
+                </tr>
                 {% else %}
-                <tr><td colspan="2" class="text-center text-muted py-3">Chưa có dữ liệu thống kê theo khoa</td></tr>
+                <tr><td colspan="2" class="text-center text-muted py-4">Chưa có số liệu thống kê.</td></tr>
                 {% endfor %}
             </tbody>
         </table>
@@ -51,8 +72,8 @@
 
 <div class="row g-3">
     <div class="col-lg-6">
-        <div class="card">
-            <div class="card-header">Top tài liệu được mượn nhiều nhất (30 ngày)</div>
+        <div class="card h-100">
+            <div class="card-header">Tài liệu được mượn nhiều nhất (30 ngày)</div>
             <div class="table-responsive">
                 <table class="table table-hover">
                     <thead><tr><th>#</th><th>Tài liệu</th><th class="text-end">Lượt</th></tr></thead>
@@ -61,37 +82,38 @@
                         <tr>
                             <td class="text-muted fw-semibold">{{ loop.index }}</td>
                             <td>
-                                <a href="{{ url_for('books.detail', book_id=item.book.id) }}" class="fw-medium text-decoration-none" style="color:var(--ink)">{{ item.book.title | truncate_text(55) }}</a>
-                                <div class="text-muted" style="font-size:11.5px">{{ item.book.author }}</div>
+                                <a href="{{ url_for('books.detail', book_id=item.book.id) }}" class="fw-semibold text-decoration-none text-dark">{{ item.book.title | truncate_text(55) }}</a>
+                                <div class="text-muted small">{{ item.book.author }}</div>
                             </td>
-                            <td class="text-end"><span class="badge-tag tag-navy">{{ item.count }}</span></td>
+                            <td class="text-end"><span class="status-pill pill-indigo">{{ item.count }}</span></td>
                         </tr>
                         {% else %}
-                        <tr><td colspan="3" class="text-center text-muted py-3">Chưa có dữ liệu</td></tr>
+                        <tr><td colspan="3" class="text-center text-muted py-4">Chưa có dữ liệu.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
         </div>
     </div>
+
     <div class="col-lg-6">
-        <div class="card">
-            <div class="card-header">Top độc giả tích cực nhất (30 ngày)</div>
+        <div class="card h-100">
+            <div class="card-header">Độc giả mượn tích cực nhất (30 ngày)</div>
             <div class="table-responsive">
                 <table class="table table-hover">
-                    <thead><tr><th>#</th><th>Độc giả (MSSV)</th><th class="text-end">Lượt</th></tr></thead>
+                    <thead><tr><th>#</th><th>Độc giả</th><th class="text-end">Lượt</th></tr></thead>
                     <tbody>
                         {% for item in top_members %}
                         <tr>
                             <td class="text-muted fw-semibold">{{ loop.index }}</td>
                             <td>
-                                <a href="{{ url_for('members.detail', member_id=item.member.id) }}" class="fw-medium text-decoration-none" style="color:var(--ink)">{{ item.member.full_name }}</a>
-                                <div class="text-muted" style="font-size:11.5px">{{ item.member.student_id or item.member.member_code }}{% if item.member.faculty %} • {{ item.member.faculty }}{% endif %}</div>
+                                <a href="{{ url_for('members.detail', member_id=item.member.id) }}" class="fw-semibold text-decoration-none text-dark">{{ item.member.full_name }}</a>
+                                <div class="text-muted small">{{ item.member.student_id or item.member.member_code }}{% if item.member.faculty %} • {{ item.member.faculty }}{% endif %}</div>
                             </td>
-                            <td class="text-end"><span class="badge-tag tag-success">{{ item.count }}</span></td>
+                            <td class="text-end"><span class="status-pill pill-emerald">{{ item.count }}</span></td>
                         </tr>
                         {% else %}
-                        <tr><td colspan="3" class="text-center text-muted py-3">Chưa có dữ liệu</td></tr>
+                        <tr><td colspan="3" class="text-center text-muted py-4">Chưa có dữ liệu.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
@@ -102,25 +124,49 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
-const monthlyData = {{ monthly_data | tojson }};
-const categoryData = {{ category_dist | tojson }};
-new Chart(document.getElementById('monthlyChart'), {
-    type: 'bar',
-    data: {
-        labels: monthlyData.map(d => d.month),
-        datasets: [
-            { label: 'Mượn', data: monthlyData.map(d => d.borrowed), backgroundColor: '#1B365D', borderRadius: 3 },
-            { label: 'Trả', data: monthlyData.map(d => d.returned), backgroundColor: '#245E43', borderRadius: 3 },
-        ]
-    },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top', align: 'end' } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: '#ECE8E0' } }, x: { grid: { display: false } } } }
-});
-const catData = categoryData.filter(d => d.book_count > 0);
-new Chart(document.getElementById('categoryChart'), {
-    type: 'doughnut',
-    data: { labels: catData.map(d => d.name), datasets: [{ data: catData.map(d => d.book_count), backgroundColor: catData.map(d => d.color), borderWidth: 2, borderColor: '#FFFFFF' }] },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 11, font: { size: 11.5 } } } }, cutout: '58%' }
-});
+<script data-page-script>
+(function() {
+    const monthlyData = {{ monthly_data | tojson }};
+    const catData = ({{ category_dist | tojson }}).filter(d => d.book_count > 0);
+
+    const mEl = document.getElementById('repMonthlyChart');
+    if (mEl && window.Chart) {
+        const c1 = new Chart(mEl, {
+            type: 'bar',
+            data: {
+                labels: monthlyData.map(d => d.month),
+                datasets: [
+                    { label: 'Lượt mượn', data: monthlyData.map(d => d.borrowed), backgroundColor: '#161615', borderRadius: 3, maxBarThickness: 22 },
+                    { label: 'Lượt trả', data: monthlyData.map(d => d.returned), backgroundColor: '#A39E93', borderRadius: 3, maxBarThickness: 22 },
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'top', align: 'end', labels: { boxWidth: 10, usePointStyle: true } } },
+                scales: { y: { beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: 'rgba(15,23,42,0.06)' } }, x: { grid: { display: false } } }
+            }
+        });
+        window.LibCore?.registerChart(c1);
+    }
+
+    const cEl = document.getElementById('repCatChart');
+    if (cEl && window.Chart) {
+        const c2 = new Chart(cEl, {
+            type: 'doughnut',
+            data: {
+                labels: catData.map(d => d.name),
+                datasets: [{ data: catData.map(d => d.book_count), backgroundColor: catData.map(d => d.color), borderWidth: 2, borderColor: '#FFFFFF' }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, padding: 12, font: { size: 11.5 } } } },
+                cutout: '64%'
+            }
+        });
+        window.LibCore?.registerChart(c2);
+    }
+})();
 </script>
 {% endblock %}

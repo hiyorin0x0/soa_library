@@ -1,57 +1,59 @@
 {% extends 'base.html' %}
-{% block title %}Xác nhận ra trường{% endblock %}
-{% block page_title %}Xác nhận hoàn trả sách ra trường{% endblock %}
+{% block title %}Thanh lý thẻ ra trường{% endblock %}
+{% block page_title %}Thanh lý thẻ thư viện khi ra trường{% endblock %}
 
 {% block content %}
-<div class="page-intro">
+<div class="section-header">
     <div>
-        <h2>Kiểm tra & Xác nhận nghĩa vụ thư viện ra trường</h2>
-        <p class="page-purpose">
-            Mục đích: Đảm bảo sinh viên / học viên trước khi tốt nghiệp hoặc rời trường phải hoàn trả đầy đủ toàn bộ tài liệu đang mượn và thanh toán hết phí phạt, tránh thất thoát tài sản của nhà trường.
-        </p>
+        <h2 class="section-title">Xác nhận Không nợ Sách & Thanh lý Thẻ Ra trường</h2>
+        <p class="section-subtitle">Kiểm tra hoàn trả sách và đóng tiền phạt tồn đọng khi sinh viên, học viên làm thủ tục rời trường</p>
     </div>
-    <a href="{{ url_for('members.index') }}" class="btn btn-outline-secondary btn-sm">
-        <i class="fas fa-id-card me-1"></i>Danh sách độc giả
-    </a>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('members.export_clearance', search=search, graduation_year=selected_year or '', state=selected_state, faculty=selected_faculty) }}" class="btn btn-outline-secondary btn-sm" data-no-pjax>
+            <i class="fas fa-file-csv"></i>Xuất CSV
+        </a>
+        <a href="{{ url_for('members.index') }}" class="btn btn-outline-primary btn-sm">
+            <i class="fas fa-id-card"></i>Danh sách thẻ
+        </a>
+    </div>
 </div>
 
-<div class="alert alert-info py-2 mb-3">
-    <strong>Quy tắc xét điều kiện ra trường (Members Service):</strong>
-    Sinh viên chỉ được xác nhận hoàn tất khi đồng thời thỏa mãn <strong>(1) Số sách đang mượn = 0</strong> và <strong>(2) Tổng phí phạt / đền bù chưa thanh toán = 0₫</strong>.
-</div>
-
-<div class="card mb-3">
-    <div class="card-body py-3">
-        <form method="GET" class="row g-2 align-items-end">
-            <div class="col-md-5">
-                <label class="form-label">Tra cứu theo MSSV, họ tên, khoa, lớp</label>
-                <div class="search-wrapper">
-                    <i class="fas fa-search search-icon"></i>
-                    <input type="text" name="search" class="form-control"
-                           placeholder="VD: 22110045, Nguyễn Văn An, D22CQCN01..."
-                           value="{{ search }}">
-                </div>
+<div class="filter-bar">
+    <form method="GET" class="row g-2 align-items-end">
+        <div class="col-lg-4 col-md-6">
+            <label class="form-label">Từ khóa</label>
+            <div class="search-wrapper">
+                <i class="fas fa-magnifying-glass search-icon"></i>
+                <input type="text" name="search" class="form-control" placeholder="MSSV, họ tên, lớp..." value="{{ search }}">
             </div>
-            <div class="col-md-2">
-                <label class="form-label">Năm dự kiến TN</label>
-                <input type="number" name="graduation_year" class="form-control"
-                       placeholder="VD: 2026" value="{{ selected_year or '' }}">
-            </div>
-            <div class="col-md-3">
-                <label class="form-label">Trạng thái xét duyệt</label>
-                <select name="state" class="form-select">
-                    <option value="">Tất cả sinh viên / học viên</option>
-                    <option value="blocked" {% if selected_state == 'blocked' %}selected{% endif %}>Chưa đủ điều kiện (Đang bị chặn)</option>
-                    <option value="eligible" {% if selected_state == 'eligible' %}selected{% endif %}>Đủ điều kiện xác nhận</option>
-                    <option value="cleared" {% if selected_state == 'cleared' %}selected{% endif %}>Đã xác nhận ra trường</option>
-                </select>
-            </div>
-            <div class="col-md-2 d-flex gap-2">
-                <button type="submit" class="btn btn-primary flex-grow-1">Tra cứu</button>
-                <a href="{{ url_for('members.clearance') }}" class="btn btn-outline-secondary" title="Đặt lại"><i class="fas fa-rotate-left"></i></a>
-            </div>
-        </form>
-    </div>
+        </div>
+        <div class="col-lg-2 col-md-6">
+            <label class="form-label">Khoa / Viện</label>
+            <select name="faculty" class="form-select">
+                <option value="">Tất cả đơn vị</option>
+                {% for f in faculties %}
+                <option value="{{ f }}" {% if selected_faculty == f %}selected{% endif %}>{{ f }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-lg-2 col-md-4">
+            <label class="form-label">Khóa ra trường</label>
+            <input type="number" name="graduation_year" class="form-control" placeholder="2026" value="{{ selected_year or '' }}">
+        </div>
+        <div class="col-lg-2 col-md-4">
+            <label class="form-label">Tình trạng sách & phạt</label>
+            <select name="state" class="form-select">
+                <option value="">Tất cả</option>
+                <option value="blocked" {% if selected_state == 'blocked' %}selected{% endif %}>Còn giữ sách / nợ phạt</option>
+                <option value="eligible" {% if selected_state == 'eligible' %}selected{% endif %}>Không nợ sách & phạt</option>
+                <option value="cleared" {% if selected_state == 'cleared' %}selected{% endif %}>Đã thanh lý thẻ</option>
+            </select>
+        </div>
+        <div class="col-lg-2 col-md-4 d-flex gap-2">
+            <button type="submit" class="btn btn-primary flex-grow-1">Lọc</button>
+            <a href="{{ url_for('members.clearance') }}" class="btn btn-outline-secondary btn-icon" title="Đặt lại"><i class="fas fa-rotate-left"></i></a>
+        </div>
+    </form>
 </div>
 
 {% if candidates %}
@@ -63,10 +65,10 @@
                     <th>MSSV</th>
                     <th>Sinh viên / Học viên</th>
                     <th>Khoa / Lớp</th>
-                    <th class="text-center">Năm TN</th>
+                    <th class="text-center">Năm ra trường</th>
                     <th class="text-center">Sách chưa trả</th>
                     <th class="text-end">Phạt chưa đóng</th>
-                    <th>Kết quả xét duyệt</th>
+                    <th>Tình trạng thư viện</th>
                     <th class="text-end">Thao tác</th>
                 </tr>
             </thead>
@@ -75,19 +77,17 @@
                 <tr class="{% if c.clearance_state == 'blocked' %}row-overdue{% endif %}">
                     <td><code>{{ c.student_id or c.member_code }}</code></td>
                     <td>
-                        <a href="{{ url_for('members.detail', member_id=c.id) }}" class="fw-semibold text-decoration-none" style="color:var(--ink)">
-                            {{ c.full_name }}
-                        </a>
-                        <div class="text-muted" style="font-size:11.5px">{{ c.member_type | member_type_label }}</div>
+                        <a href="{{ url_for('members.detail', member_id=c.id) }}" class="fw-semibold text-decoration-none text-dark">{{ c.full_name }}</a>
+                        <div class="text-muted small">{{ c.member_type | member_type_label }}</div>
                     </td>
                     <td>
-                        <div>{{ c.faculty or '-' }}</div>
-                        <div class="text-muted" style="font-size:11.5px">{{ c.class_name or '' }}</div>
+                        <div>{{ c.faculty or '—' }}</div>
+                        <div class="text-muted small">{{ c.class_name or '' }}</div>
                     </td>
-                    <td class="text-center">{{ c.graduation_year or '-' }}</td>
+                    <td class="text-center">{{ c.graduation_year or '—' }}</td>
                     <td class="text-center">
                         {% if c.active_loans_count > 0 %}
-                        <span class="badge-tag tag-danger">{{ c.active_loans_count }} cuốn</span>
+                        <span class="status-pill pill-rose">{{ c.active_loans_count }} cuốn</span>
                         {% else %}
                         <span class="text-success fw-semibold">0</span>
                         {% endif %}
@@ -96,37 +96,30 @@
                         {% if c.unpaid_fine > 0 %}
                         <span class="text-danger fw-semibold">{{ c.unpaid_fine | vnd }}</span>
                         {% else %}
-                        <span class="text-success">0₫</span>
+                        <span class="text-muted">0₫</span>
                         {% endif %}
                     </td>
                     <td>
                         {% if c.clearance_state == 'cleared' %}
-                        <span class="badge-tag tag-navy">Đã xác nhận ra trường</span>
-                        {% if c.clearance_date %}
-                        <div class="text-muted" style="font-size:11px">Ngày: {{ c.clearance_date.strftime('%d/%m/%Y') if c.clearance_date is not string else c.clearance_date[:10] }}</div>
-                        {% endif %}
+                        <span class="status-pill pill-indigo"><span class="dot"></span>Đã thanh lý ({{ c.clearance_date | fmt_date }})</span>
                         {% elif c.clearance_state == 'eligible' %}
-                        <span class="badge-tag tag-success">Đủ điều kiện</span>
+                        <span class="status-pill pill-emerald"><span class="dot"></span>Không nợ sách & phạt</span>
                         {% else %}
-                        <span class="badge-tag tag-danger">Chưa đủ điều kiện</span>
+                        <span class="status-pill pill-rose"><span class="dot"></span>Còn giữ sách / nợ phạt</span>
                         {% endif %}
                     </td>
                     <td class="text-end text-nowrap">
                         {% if c.clearance_state == 'eligible' %}
-                        <form method="POST" action="{{ url_for('members.confirm_clearance', member_id=c.id) }}" class="d-inline"
-                              onsubmit="return confirm('Xác nhận hoàn tất nghĩa vụ thư viện ra trường cho {{ c.full_name }} ({{ c.student_id }})?')">
+                        <form method="POST" action="{{ url_for('members.confirm_clearance', member_id=c.id) }}" class="d-inline" data-no-pjax
+                              onsubmit="return confirm('Xác nhận không nợ thư viện và đóng thẻ ra trường cho {{ c.full_name }} ({{ c.student_id }})?')">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <input type="hidden" name="next" value="clearance">
-                            <button type="submit" class="btn btn-success btn-sm">Xác nhận ra trường</button>
+                            <button type="submit" class="btn btn-success btn-sm">Xác nhận & Đóng thẻ</button>
                         </form>
                         {% elif c.clearance_state == 'blocked' %}
-                        <a href="{{ url_for('members.detail', member_id=c.id) }}" class="btn btn-outline-danger btn-sm">
-                            Xem sách / nợ phạt
-                        </a>
+                        <a href="{{ url_for('members.detail', member_id=c.id) }}" class="btn btn-outline-danger btn-sm">Xem khoản nợ</a>
                         {% else %}
-                        <a href="{{ url_for('members.detail', member_id=c.id) }}" class="btn btn-outline-secondary btn-sm">
-                            Xem hồ sơ
-                        </a>
+                        <a href="{{ url_for('members.detail', member_id=c.id) }}" class="btn btn-outline-secondary btn-sm">Hồ sơ</a>
                         {% endif %}
                     </td>
                 </tr>
@@ -137,8 +130,8 @@
 </div>
 {% else %}
 <div class="empty-state">
-    <i class="fas fa-graduation-cap d-block"></i>
-    <h6 class="fw-semibold">Không có sinh viên nào khớp bộ lọc</h6>
+    <div class="empty-state-icon"><i class="fas fa-graduation-cap"></i></div>
+    <h6 class="fw-bold text-dark">Không có sinh viên nào khớp bộ lọc</h6>
 </div>
 {% endif %}
 {% endblock %}

@@ -1,15 +1,15 @@
 {% extends 'base.html' %}
-{% block title %}Ngành & Thể loại tài liệu{% endblock %}
-{% block page_title %}Danh mục Ngành & Thể loại{% endblock %}
+{% block title %}Chuyên ngành{% endblock %}
+{% block page_title %}Danh mục chuyên ngành{% endblock %}
 
 {% block content %}
-<div class="page-intro">
+<div class="section-header">
     <div>
-        <h2>Phân loại kho tài liệu theo ngành học</h2>
-        <p class="page-purpose">Mục đích: Tổ chức giáo trình, tài liệu tham khảo và khóa luận theo chuyên ngành để sinh viên tra cứu nhanh theo học phần.</p>
+        <h2 class="section-title">Phân loại Chuyên ngành Đào tạo</h2>
+        <p class="section-subtitle">Quản lý các nhóm ngành và lĩnh vực tài liệu trong kho thư viện</p>
     </div>
-    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addCategoryModal">
-        <i class="fas fa-plus me-1"></i>Thêm danh mục
+    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addCategoryModal" type="button">
+        <i class="fas fa-plus"></i>Thêm chuyên ngành
     </button>
 </div>
 
@@ -18,64 +18,70 @@
         <table class="table table-hover">
             <thead>
                 <tr>
-                    <th>Tên danh mục</th>
-                    <th>Mô tả phạm vi tài liệu</th>
-                    <th class="text-center">Số đầu sách</th>
+                    <th>Chuyên ngành</th>
+                    <th>Mô tả</th>
+                    <th class="text-center">Quy mô đầu sách</th>
                     <th class="text-end">Thao tác</th>
                 </tr>
             </thead>
             <tbody>
                 {% for cat in categories %}
+                {% set cnt = cat.book_count if cat.book_count is defined else cat.books.count() %}
                 <tr>
                     <td class="fw-semibold">
                         <span class="d-inline-block rounded-circle me-2" style="width:10px;height:10px;background:{{ cat.color }}"></span>
                         {{ cat.name }}
                     </td>
-                    <td class="text-muted">{{ cat.description or '-' }}</td>
+                    <td class="text-muted">{{ cat.description or '—' }}</td>
                     <td class="text-center">
-                        <span class="badge-tag tag-navy">{{ cat.book_count if cat.book_count is defined else cat.books.count() }} đầu sách</span>
+                        <span class="status-pill pill-indigo">{{ cnt }} đầu sách</span>
                     </td>
-                    <td class="text-end">
-                        <a href="{{ url_for('books.index') }}?category={{ cat.id }}" class="btn btn-outline-primary btn-sm">
-                            Xem tài liệu
-                        </a>
+                    <td class="text-end text-nowrap">
+                        <div class="d-inline-flex gap-1">
+                            <a href="{{ url_for('books.index', category=cat.id) }}" class="btn btn-outline-primary btn-sm">Xem sách</a>
+                            {% if current_user.is_admin and cnt == 0 %}
+                            <form method="POST" action="{{ url_for('books.delete_category', category_id=cat.id) }}" class="d-inline" data-no-pjax onsubmit="return confirm('Xóa chuyên ngành {{ cat.name }}?')">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-outline-danger btn-icon btn-sm"><i class="fas fa-trash"></i></button>
+                            </form>
+                            {% endif %}
+                        </div>
                     </td>
                 </tr>
                 {% else %}
-                <tr><td colspan="4" class="text-center text-muted py-4">Chưa có danh mục nào</td></tr>
+                <tr><td colspan="4" class="text-center text-muted py-4">Chưa có chuyên ngành nào.</td></tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
 </div>
 
-<!-- Add Category Modal -->
 <div class="modal fade" id="addCategoryModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h6 class="modal-title fw-bold">Thêm danh mục ngành / thể loại</h6>
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius:14px">
+            <div class="modal-header border-bottom-0 pb-0">
+                <h5 class="modal-title fw-bold">Tạo chuyên ngành mới</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form method="POST" action="{{ url_for('books.create_category') }}">
+            <form method="POST" action="{{ url_for('books.create_category') }}" data-no-pjax>
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label class="form-label">Tên danh mục <span class="text-danger">*</span></label>
-                        <input type="text" name="name" class="form-control" required placeholder="VD: Khoa học Dữ liệu & AI">
+                        <label class="form-label">Tên chuyên ngành <span class="text-danger">*</span></label>
+                        <input type="text" name="name" class="form-control" required placeholder="Khoa học Dữ liệu & Trí tuệ Nhân tạo">
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Màu nhận diện trên biểu đồ</label>
-                        <input type="color" name="color" class="form-control form-control-color" value="#1B365D" style="width:60px">
+                        <label class="form-label">Màu nhận diện</label>
+                        <input type="color" name="color" class="form-control form-control-color" value="#1E40AF" style="width:64px">
                     </div>
-                    <div class="mb-0">
+                    <div>
                         <label class="form-label">Mô tả</label>
-                        <textarea name="description" class="form-control" rows="2" placeholder="Mô tả phạm vi tài liệu thuộc danh mục..."></textarea>
+                        <textarea name="description" class="form-control" rows="2"></textarea>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Hủy</button>
-                    <button type="submit" class="btn btn-primary btn-sm">Lưu danh mục</button>
+                <div class="modal-footer border-top-0 pt-0">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Đóng</button>
+                    <button type="submit" class="btn btn-primary">Lưu chuyên ngành</button>
                 </div>
             </form>
         </div>

@@ -1,5 +1,5 @@
 """
-Setup script for running the app quickly
+Setup script for running the LibCore SOA application quickly
 """
 import subprocess
 import sys
@@ -7,29 +7,29 @@ import os
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 
-def run(cmd, **kwargs):
-    return subprocess.run(cmd, shell=True, cwd=BASE, **kwargs)
+
+def get_working_python():
+    venv_py = os.path.join(BASE, 'venv', 'Scripts', 'python.exe')
+    if os.path.exists(venv_py):
+        check = subprocess.run([venv_py, '--version'], capture_output=True)
+        if check.returncode == 0:
+            return venv_py
+    return sys.executable
+
 
 if __name__ == '__main__':
-    print("=== Library SOA - Quick Setup ===")
-    
-    # Set env
+    print("=== LibCore University Library SOA — Quick Setup ===")
+    py = get_working_python()
     os.environ['FLASK_APP'] = 'run.py'
     os.environ['FLASK_ENV'] = 'development'
-    
-    venv_python = os.path.join(BASE, 'venv', 'Scripts', 'python.exe')
 
-    print("\n[1] Installing dependencies...")
-    run(f'"{venv_python}" -m pip install -r requirements.txt -q')
+    print("\n[1] Checking dependencies...")
+    subprocess.run([py, '-m', 'pip', 'install', '-r', 'requirements.txt', '-q'], cwd=BASE)
 
-    print("[2] Running DB migrations...")
-    run(f'"{venv_python}" -m flask --app run.py db upgrade', env={**os.environ})
+    print("[2] Initializing database & sample data...")
+    subprocess.run([py, 'run.py', 'seed'], cwd=BASE, env={**os.environ})
 
-    print("[3] Seeding database...")
-    run(f'"{venv_python}" -m flask --app run.py seed-db', env={**os.environ})
-
-    print("\n[OK] Setup complete! Starting server...")
-    print("     Gateway: http://localhost:5000")
-    print("     Services: books 5001, members 5002, loans 5003, reports 5004")
-    print("     Admin: admin / Admin@123")
-    run(f'"{venv_python}" run.py', env={**os.environ})
+    print("\n[OK] Starting SOA Gateway & 4 Domain Services...")
+    print("     Staff Portal: http://localhost:5000/login")
+    print("     Public OPAC:  http://localhost:5000/catalog")
+    subprocess.run([py, 'run.py', 'all'], cwd=BASE, env={**os.environ})

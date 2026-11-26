@@ -31,8 +31,9 @@ def api_auth_required(view):
         except (InvalidTokenError, KeyError, TypeError, ValueError):
             return jsonify({'status': 'error', 'message': 'Invalid or expired access token'}), 401
 
+        from app.extensions import db
         from app.models.user import User
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)
         if not user or not user.is_active or user.role != claims.get('role'):
             return jsonify({'status': 'error', 'message': 'Account is inactive or token is no longer valid'}), 401
 

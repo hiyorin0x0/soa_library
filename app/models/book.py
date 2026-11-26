@@ -55,10 +55,11 @@ class Book(db.Model):
 
     # Relationships
     loans = db.relationship('Loan', backref='book', lazy='dynamic')
+    reservations = db.relationship('Reservation', backref='book', lazy='dynamic')
 
     @property
     def is_available(self):
-        return self.available_copies > 0 and self.status == 'available'
+        return (self.available_copies or 0) > 0 and self.status == 'available'
 
     @property
     def is_borrowable(self):
@@ -67,6 +68,23 @@ class Book(db.Model):
     @property
     def borrow_count(self):
         return self.loans.count()
+
+    @property
+    def active_loans_count(self):
+        return self.loans.filter_by(status='borrowed').count()
+
+    @property
+    def active_reservations_count(self):
+        from app.models.reservation import Reservation
+        return self.reservations.filter(Reservation.status.in_(['pending', 'ready'])).count()
+
+    @property
+    def pending_reservations_count(self):
+        return self.reservations.filter_by(status='pending').count()
+
+    @property
+    def ready_reservations_count(self):
+        return self.reservations.filter_by(status='ready').count()
 
     def to_dict(self):
         return {
@@ -77,10 +95,15 @@ class Book(db.Model):
             'publisher': self.publisher,
             'publish_year': self.publish_year,
             'category': self.category.name if self.category else None,
+            'category_color': self.category.color if self.category else '#1B365D',
             'category_id': self.category_id,
             'description': self.description,
             'total_copies': self.total_copies,
             'available_copies': self.available_copies,
+            'active_loans_count': self.active_loans_count,
+            'active_reservations_count': self.active_reservations_count,
+            'pending_reservations_count': self.pending_reservations_count,
+            'ready_reservations_count': self.ready_reservations_count,
             'location': self.location,
             'cover_image': self.cover_image,
             'language': self.language,

@@ -1,0 +1,157 @@
+{% extends 'opac/base_opac.html' %}
+{% block title %}{{ book.title }}{% endblock %}
+
+{% block content %}
+<div class="container py-4 py-lg-5">
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb mb-0 small">
+            <li class="breadcrumb-item"><a href="{{ url_for('opac.index') }}" class="text-secondary text-decoration-none">Danh mục sách</a></li>
+            {% if book.category %}
+            <li class="breadcrumb-item"><a href="{{ url_for('opac.index', category=book.category_id) }}" class="text-secondary text-decoration-none">{{ book.category.name }}</a></li>
+            {% endif %}
+            <li class="breadcrumb-item active text-truncate" style="max-width:300px">{{ book.title }}</li>
+        </ol>
+    </nav>
+
+    <div class="row g-4 g-lg-5">
+        <div class="col-md-4 col-lg-3">
+            <div class="book-cover-lg mb-4">
+                {% if book.cover_image %}
+                <img src="{{ url_for('static', filename='img/books/' + book.cover_image) }}" alt="{{ book.title }}">
+                {% else %}
+                <div>
+                    <div class="book-jacket-band" style="background:{{ book.category.color if book.category else '#161615' }}"></div>
+                    <div class="cover-cat">{{ book.category.name if book.category else 'Thư viện Đại học' }}</div>
+                </div>
+                <div class="cover-title">{{ book.title }}</div>
+                <div class="cover-author">{{ book.author }}</div>
+                {% endif %}
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center pb-2 mb-2 border-bottom small" style="border-color:var(--line)!important">
+                        <span class="text-muted">Hình thức</span>
+                        <span class="fw-medium">{{ 'Chỉ đọc tại thư viện' if book.circulation_type == 'reference_only' else 'Cho mượn mang về' }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center pb-2 mb-2 border-bottom small" style="border-color:var(--line)!important">
+                        <span class="text-muted">Số cuốn hiện còn</span>
+                        <strong class="{% if book.available_copies > 0 %}text-success{% else %}text-danger{% endif %}">{{ book.available_copies }} / {{ book.total_copies }} cuốn</strong>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-3 small">
+                        <span class="text-muted">Vị trí kệ</span>
+                        <code>{{ book.location or 'Quầy chính' }}</code>
+                    </div>
+
+                    {% if book.pending_reservations_count and book.pending_reservations_count > 0 %}
+                    <div class="small text-muted mb-3">
+                        Hiện có <strong>{{ book.pending_reservations_count }}</strong> bạn đọc đang xếp hàng chờ.
+                    </div>
+                    {% endif %}
+
+                    {% if (book.circulation_type or 'borrowable') == 'borrowable' and book.status == 'available' %}
+                    <button type="button" class="btn btn-primary w-100" data-bs-toggle="modal" data-bs-target="#reserveModal">
+                        {% if book.available_copies > 0 %}Đặt giữ sách tại quầy{% else %}Đặt trước chờ sách trả về{% endif %}
+                    </button>
+                    {% else %}
+                    <div class="p-2 rounded text-center small" style="background:var(--paper-warm);color:var(--ink-secondary)">
+                        Tài liệu phục vụ đọc tại phòng đọc
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-8 col-lg-9">
+            {% if book.category %}
+            <div class="text-uppercase fw-semibold mb-2" style="font-size:11px;letter-spacing:0.07em;color:{{ book.category.color }}">
+                {{ book.category.name }}
+            </div>
+            {% endif %}
+            <h1 class="font-editorial mb-2" style="font-size:clamp(26px, 3.2vw, 36px);line-height:1.2">{{ book.title }}</h1>
+            <p class="mb-4" style="font-size:15.5px;color:var(--ink-secondary)">{{ book.author }}</p>
+
+            {% if book.description %}
+            <div class="mb-4 pb-4 border-bottom" style="border-color:var(--line)!important">
+                <p class="mb-0" style="font-size:14.5px;line-height:1.75;color:var(--ink);max-width:68ch">{{ book.description }}</p>
+            </div>
+            {% endif %}
+
+            <h6 class="text-uppercase fw-semibold mb-3" style="font-size:11px;letter-spacing:0.07em;color:var(--ink-muted)">Thông tin thư mục</h6>
+            <div class="row g-3">
+                <div class="col-sm-6">
+                    <div class="info-field">
+                        <span class="info-field-label">Mã ISBN / Ký hiệu lưu chiểu</span>
+                        <code>{{ book.isbn }}</code>
+                    </div>
+                </div>
+                <div class="col-sm-6">
+                    <div class="info-field">
+                        <span class="info-field-label">Đơn vị chuyên môn</span>
+                        <span>{{ book.department or 'Dùng chung toàn trường' }}</span>
+                    </div>
+                </div>
+                <div class="col-sm-6">
+                    <div class="info-field">
+                        <span class="info-field-label">Nhà xuất bản</span>
+                        <span>{{ book.publisher or '—' }}</span>
+                    </div>
+                </div>
+                <div class="col-sm-6">
+                    <div class="info-field">
+                        <span class="info-field-label">Năm xuất bản</span>
+                        <span>{{ book.publish_year or '—' }}</span>
+                    </div>
+                </div>
+                <div class="col-sm-6">
+                    <div class="info-field">
+                        <span class="info-field-label">Ngôn ngữ</span>
+                        <span>{{ book.language or 'Tiếng Việt' }}</span>
+                    </div>
+                </div>
+                <div class="col-sm-6">
+                    <div class="info-field">
+                        <span class="info-field-label">Số trang</span>
+                        <span>{{ book.pages or '—' }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="reserveModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius:10px;border:1px solid var(--line-strong)">
+            <div class="modal-header border-bottom-0 pb-0">
+                <h5 class="modal-title font-editorial fs-4">
+                    {% if book.available_copies > 0 %}Đặt giữ sách tại quầy{% else %}Đặt trước chờ sách trả về{% endif %}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('opac.reserve_book', book_id=book.id) }}" data-no-pjax>
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-body">
+                    <p class="small text-muted mb-3">Tài liệu: <strong class="text-dark">{{ book.title }}</strong></p>
+                    <div class="mb-3">
+                        <label class="form-label">Mã số sinh viên / Mã cán bộ <span class="text-danger">*</span></label>
+                        <input type="text" name="identifier" class="form-control" required placeholder="Nhập MSSV hoặc Mã thẻ">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Email trường hoặc Số điện thoại đăng ký <span class="text-danger">*</span></label>
+                        <input type="text" name="verify" class="form-control" required placeholder="Nhập email hoặc SĐT của bạn">
+                    </div>
+                    <div>
+                        <label class="form-label">Ghi chú nhận sách</label>
+                        <input type="text" name="notes" class="form-control" placeholder="Thời gian dự kiến đến quầy...">
+                    </div>
+                </div>
+                <div class="modal-footer border-top-0 pt-0">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Đóng</button>
+                    <button type="submit" class="btn btn-primary">Xác nhận đặt sách</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

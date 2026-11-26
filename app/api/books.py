@@ -18,14 +18,24 @@ def list_books():
     pagination = BookService.get_all_books(
         page=request.args.get('page', 1, type=int),
         per_page=request.args.get('per_page', 12, type=int),
-        search=request.args.get('q', ''), category_id=request.args.get('category', type=int),
+        search=request.args.get('q', ''),
+        category_id=request.args.get('category', type=int),
         status=request.args.get('status', ''),
         circulation_type=request.args.get('circulation_type', ''),
+        department=request.args.get('department', ''),
         sort_by=request.args.get('sort', 'title'),
-        order=request.args.get('order', 'asc'))
-    return jsonify({'status': 'success', 'data': [serialize_book(b) for b in pagination.items],
-                    'meta': {'page': pagination.page, 'pages': pagination.pages,
-                             'total': pagination.total, 'per_page': pagination.per_page}})
+        order=request.args.get('order', 'asc'),
+    )
+    return jsonify({
+        'status': 'success',
+        'data': [serialize_book(b) for b in pagination.items],
+        'meta': {
+            'page': pagination.page,
+            'pages': pagination.pages,
+            'total': pagination.total,
+            'per_page': pagination.per_page,
+        },
+    })
 
 
 @api_books_bp.route('/', methods=['POST'])
@@ -70,10 +80,26 @@ def search_books():
         request.args.get('q', ''), request.args.get('limit', 10, type=int))})
 
 
+@api_books_bp.route('/departments', methods=['GET'])
+@service_token_required
+def departments():
+    return jsonify({'status': 'success', 'data': BookService.get_departments()})
+
+
 @api_books_bp.route('/statistics', methods=['GET'])
 @service_token_required
 def statistics():
     return jsonify({'status': 'success', 'data': BookService.get_statistics()})
+
+
+@api_books_bp.route('/facets', methods=['GET'])
+@service_token_required
+def facets():
+    return jsonify({'status': 'success', 'data': BookService.get_opac_facets(
+        search=request.args.get('q', ''),
+        category_id=request.args.get('category', type=int),
+        availability=request.args.get('availability', ''),
+    )})
 
 
 @api_books_bp.route('/popular', methods=['GET'])
@@ -93,8 +119,20 @@ def list_categories():
 @service_token_required
 def create_category():
     data = request.get_json(silent=True) or request.form
-    category, error = BookService.create_category(data.get('name', '').strip(),
-                                                 data.get('description'), data.get('color', '#6B7280'))
+    category, error = BookService.create_category(
+        data.get('name', '').strip(),
+        data.get('description'),
+        data.get('color', '#1B365D'),
+    )
     if error:
         return jsonify({'status': 'error', 'message': error}), 409
     return jsonify({'status': 'success', 'data': category.to_dict()}), 201
+
+
+@api_books_bp.route('/categories/<int:category_id>', methods=['DELETE'])
+@service_token_required
+def delete_category(category_id):
+    success, error = BookService.delete_category(category_id)
+    if not success:
+        return jsonify({'status': 'error', 'message': error}), 409
+    return jsonify({'status': 'success', 'success': True})

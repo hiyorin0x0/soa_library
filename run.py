@@ -8,6 +8,7 @@ from app.models.user import User
 from app.models.book import Book, Category
 from app.models.member import Member
 from app.models.loan import Loan
+from app.models.reservation import Reservation
 import subprocess
 import os
 import sys
@@ -26,6 +27,7 @@ def make_shell_context():
         'Category': Category,
         'Member': Member,
         'Loan': Loan,
+        'Reservation': Reservation,
     }
 
 
@@ -36,7 +38,8 @@ if app is not None:
 def seed_db():
     """Seed the database with realistic Vietnamese University Library data."""
     from app.services.auth_service import AuthService
-    from datetime import date, timedelta
+    from datetime import date, datetime, timedelta, timezone
+    datetime_now = lambda: datetime.now(timezone.utc).replace(tzinfo=None)
 
     # 1. Staff accounts
     AuthService.create_user(
@@ -479,11 +482,27 @@ def seed_db():
         for l in sample_loans:
             db.session.add(l)
             if l.status == 'borrowed':
-                bk = Book.query.get(l.book_id)
+                bk = db.session.get(Book, l.book_id)
                 if bk and bk.available_copies > 0:
                     bk.available_copies -= 1
 
         bao.total_fine = 12000
+
+        # Sample Reservations (1 ready at desk, 1 queued)
+        if Reservation.query.count() == 0:
+            res_ready = Reservation(
+                reservation_code='DC26110001',
+                book_id=b_cc.id,
+                member_id=chau.id,
+                status='ready',
+                notified_at=datetime_now(),
+                expires_at=today + timedelta(days=2),
+                notes='Đặt giữ trực tuyến qua cổng OPAC',
+            )
+            if b_cc.available_copies > 0:
+                b_cc.available_copies -= 1
+            db.session.add(res_ready)
+
         db.session.commit()
 
     print("[OK] University Library database seeded successfully!")

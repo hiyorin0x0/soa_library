@@ -1,24 +1,50 @@
 {% extends 'base.html' %}
-{% block title %}Tạo tài khoản nhân sự{% endblock %}
-{% block page_title %}Tạo tài khoản cán bộ thư viện{% endblock %}
+{% block title %}Thêm nhân sự{% endblock %}
+{% block page_title %}Khởi tạo tài khoản nhân sự{% endblock %}
 
 {% block content %}
-<div class="page-intro">
-    <div><h2>Thêm nhân sự vận hành</h2><p class="page-purpose">Cấp tài khoản đăng nhập cổng nghiệp vụ cho cán bộ thủ thư hoặc quản trị hệ thống.</p></div>
-    <a href="{{ url_for('auth.users') }}" class="btn btn-outline-secondary btn-sm">Quay lại danh sách</a>
+<div class="section-header">
+    <div>
+        <h2 class="section-title">Cấp tài khoản cán bộ mới</h2>
+        <p class="section-subtitle">Thiết lập thông tin định danh và quyền truy cập nghiệp vụ</p>
+    </div>
+    <a href="{{ url_for('auth.users') }}" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-arrow-left"></i>Quay lại
+    </a>
 </div>
+
 <div class="row justify-content-center">
     <div class="col-lg-6">
         <div class="card">
-            <div class="card-header">Thông tin tài khoản mới</div>
-            <form method="POST">
+            <div class="card-header">Thông tin tài khoản</div>
+            <form method="POST" data-no-pjax>
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="card-body">
-                    <div class="mb-3"><label class="form-label">Họ và tên <span class="text-danger">*</span></label><input type="text" name="full_name" class="form-control" required></div>
-                    <div class="mb-3"><label class="form-label">Tên đăng nhập <span class="text-danger">*</span></label><input type="text" name="username" class="form-control" required></div>
-                    <div class="mb-3"><label class="form-label">Email <span class="text-danger">*</span></label><input type="email" name="email" class="form-control" required></div>
-                    <div class="mb-3"><label class="form-label">Mật khẩu <span class="text-danger">*</span></label><input type="password" name="password" class="form-control" required minlength="6"></div>
-                    <div><label class="form-label">Vai trò phân quyền</label><select name="role" class="form-select"><option value="librarian">Cán bộ thủ thư</option><option value="admin">Quản trị hệ thống</option></select></div>
+                    <div class="mb-3">
+                        <label class="form-label">Họ và tên <span class="text-danger">*</span></label>
+                        <input type="text" name="full_name" class="form-control" required>
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Tên đăng nhập <span class="text-danger">*</span></label>
+                            <input type="text" name="username" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Vai trò</label>
+                            <select name="role" class="form-select">
+                                <option value="librarian">Cán bộ lưu thông</option>
+                                <option value="admin">Quản trị hệ thống</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Email công vụ <span class="text-danger">*</span></label>
+                        <input type="email" name="email" class="form-control" required>
+                    </div>
+                    <div>
+                        <label class="form-label">Mật khẩu khởi tạo <span class="text-danger">*</span></label>
+                        <input type="password" name="password" class="form-control" required minlength="6">
+                    </div>
                 </div>
                 <div class="card-footer d-flex gap-2">
                     <button type="submit" class="btn btn-primary">Tạo tài khoản</button>

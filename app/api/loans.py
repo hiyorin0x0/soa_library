@@ -1,4 +1,4 @@
-"""Loans service REST API."""
+"""Loans & Reservations service REST API."""
 from flask import Blueprint, jsonify, request
 from app.services.loan_service import LoanService
 from app.service_security import service_token_required
@@ -11,12 +11,24 @@ api_loans_bp = Blueprint('api_loans', __name__)
 def list_loans():
     pagination = LoanService.get_all_loans(
         page=request.args.get('page', 1, type=int),
-        per_page=request.args.get('per_page', 20, type=int), search=request.args.get('q', ''),
-        status=request.args.get('status', ''), member_id=request.args.get('member_id', type=int),
-        book_id=request.args.get('book_id', type=int))
-    return jsonify({'status': 'success', 'data': [loan.to_dict() for loan in pagination.items],
-                    'meta': {'page': pagination.page, 'pages': pagination.pages,
-                             'total': pagination.total, 'per_page': pagination.per_page}})
+        per_page=request.args.get('per_page', 20, type=int),
+        search=request.args.get('q', ''),
+        status=request.args.get('status', ''),
+        member_id=request.args.get('member_id', type=int),
+        book_id=request.args.get('book_id', type=int),
+        sort_by=request.args.get('sort', 'loan_date'),
+        order=request.args.get('order', 'desc'),
+    )
+    return jsonify({
+        'status': 'success',
+        'data': [loan.to_dict() for loan in pagination.items],
+        'meta': {
+            'page': pagination.page,
+            'pages': pagination.pages,
+            'total': pagination.total,
+            'per_page': pagination.per_page,
+        },
+    })
 
 
 @api_loans_bp.route('/', methods=['POST'])
@@ -25,11 +37,74 @@ def create_loan():
     data = request.get_json(silent=True) or request.form
     raw_duration = data.get('loan_duration')
     loan_duration = int(raw_duration) if raw_duration not in (None, '') else None
+    raw_res = data.get('reservation_id')
+    reservation_id = int(raw_res) if raw_res not in (None, '') else None
     loan, error = LoanService.create_loan(
-        book_id=int(data.get('book_id')), member_id=int(data.get('member_id')),
-        librarian_id=int(data.get('librarian_id')),
-        loan_duration=loan_duration, notes=data.get('notes'),
-        condition=data.get('condition', 'good'))
+        book_id=int(data.get('book_id')),
+        member_id=int(data.get('member_id')),
+        librarian_id=int(data.get('librarian_id') or 1),
+        loan_duration=loan_duration,
+        notes=data.get('notes'),
+        condition=data.get('condition', 'good'),
+        reservation_id=reservation_id,
+    )
+    if error:
+        return jsonify({'status': 'error', 'message': error}), 409
+    return jsonify({'status': 'success', 'data': loan.to_dict()}), 201
+
+
+@api_loans_bp.route('/reservations', methods=['GET'])
+@service_token_required
+def list_reservations():
+    pagination = LoanService.get_reservations(
+        page=request.args.get('page', 1, type=int),
+        per_page=request.args.get('per_page', 20, type=int),
+        status=request.args.get('status', ''),
+        search=request.args.get('q', ''),
+        member_id=request.args.get('member_id', type=int),
+        book_id=request.args.get('book_id', type=int),
+    )
+    return jsonify({
+        'status': 'success',
+        'data': [r.to_dict() for r in pagination.items],
+        'meta': {
+            'page': pagination.page,
+            'pages': pagination.pages,
+            'total': pagination.total,
+            'per_page': pagination.per_page,
+        },
+    })
+
+
+@api_loans_bp.route('/reservations', methods=['POST'])
+@service_token_required
+def create_reservation():
+    data = request.get_json(silent=True) or request.form
+    res, error = LoanService.create_reservation(
+        book_id=int(data.get('book_id')),
+        member_id=int(data.get('member_id')),
+        notes=data.get('notes'),
+    )
+    if error:
+        return jsonify({'status': 'error', 'message': error}), 409
+    return jsonify({'status': 'success', 'data': res.to_dict()}), 201
+
+
+@api_loans_bp.route('/reservations/<int:reservation_id>/cancel', methods=['POST'])
+@service_token_required
+def cancel_reservation(reservation_id):
+    res, error = LoanService.cancel_reservation(reservation_id)
+    if error:
+        return jsonify({'status': 'error', 'message': error}), 409
+    return jsonify({'status': 'success', 'data': res.to_dict()})
+
+
+@api_loans_bp.route('/reservations/<int:reservation_id>/fulfill', methods=['POST'])
+@service_token_required
+def fulfill_reservation(reservation_id):
+    data = request.get_json(silent=True) or request.form
+    librarian_id = int(data.get('librarian_id') or 1)
+    loan, error = LoanService.fulfill_reservation(reservation_id, librarian_id)
     if error:
         return jsonify({'status': 'error', 'message': error}), 409
     return jsonify({'status': 'success', 'data': loan.to_dict()}), 201
@@ -46,9 +121,12 @@ def get_loan(loan_id):
 def return_loan(loan_id):
     data = request.get_json(silent=True) or request.form
     loan, fine, error = LoanService.return_book(
-        loan_id, condition_in=data.get('condition_in', 'good'), notes=data.get('notes'),
+        loan_id,
+        condition_in=data.get('condition_in', 'good'),
+        notes=data.get('notes'),
         waive_fine=str(data.get('waive_fine', '')).lower() in ('1', 'true', 'on'),
-        pay_now=str(data.get('pay_now', '')).lower() in ('1', 'true', 'on'))
+        pay_now=str(data.get('pay_now', '')).lower() in ('1', 'true', 'on'),
+    )
     if error:
         return jsonify({'status': 'error', 'message': error}), 409
     return jsonify({'status': 'success', 'data': loan.to_dict(), 'fine': fine})
@@ -79,7 +157,8 @@ def renew_loan(loan_id):
 @service_token_required
 def mark_lost(loan_id):
     data = request.get_json(silent=True) or request.form
-    loan, error = LoanService.mark_as_lost(loan_id, data.get('notes'))
+    pay_now = str(data.get('pay_now', '')).lower() in ('1', 'true', 'on')
+    loan, error = LoanService.mark_as_lost(loan_id, data.get('notes'), pay_now=pay_now)
     if error:
         return jsonify({'status': 'error', 'message': error}), 409
     return jsonify({'status': 'success', 'data': loan.to_dict()})

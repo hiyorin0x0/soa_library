@@ -35,6 +35,16 @@ class Member(db.Model):
 
     # Relationships
     loans = db.relationship('Loan', backref='member', lazy='dynamic')
+    reservations = db.relationship('Reservation', backref='member', lazy='dynamic')
+
+    @property
+    def active_reservations_count(self):
+        from app.models.reservation import Reservation
+        return self.reservations.filter(Reservation.status.in_(['pending', 'ready'])).count()
+
+    @property
+    def is_student_group(self):
+        return self.member_type in ('student', 'postgrad')
 
     @property
     def active_loans_count(self):
@@ -67,6 +77,8 @@ class Member(db.Model):
 
     @property
     def can_graduate(self):
+        if not self.is_student_group:
+            return False
         return self.active_loans_count == 0 and self.unpaid_fine <= 0
 
     @property
@@ -111,6 +123,7 @@ class Member(db.Model):
             'membership_end': self.membership_end.isoformat() if self.membership_end else None,
             'notes': self.notes,
             'active_loans_count': self.active_loans_count,
+            'active_reservations_count': self.active_reservations_count,
             'overdue_loans_count': self.overdue_loans_count,
             'total_loans_count': self.total_loans_count,
             'max_loans_allowed': self.max_loans_allowed,
@@ -118,6 +131,8 @@ class Member(db.Model):
             'total_fine': self.total_fine,
             'unpaid_fine': self.unpaid_fine,
             'can_graduate': self.can_graduate,
+            'is_student_group': self.is_student_group,
+            'is_membership_valid': self.is_membership_valid,
             'created_at': self.created_at.isoformat() if self.created_at else None,
         }
 

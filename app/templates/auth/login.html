@@ -3,254 +3,162 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Đăng nhập nghiệp vụ — Thư viện Trường Đại học</title>
+    <title>Đăng nhập — Thư viện Đại học</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Newsreader:opsz,wght@6..72,600;6..72,700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap" rel="stylesheet">
     <style>
+        * { box-sizing: border-box; }
         body {
-            font-family: 'Be Vietnam Pro', sans-serif;
-            background: #F5F2EC;
-            color: #1D232A;
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: #FAF9F5;
+            color: #161615;
             min-height: 100vh;
             margin: 0;
-            border-top: 4px solid #8B2635;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 24px;
-        }
-        .portal-frame {
-            width: 100%;
-            max-width: 920px;
-            background: #FFFFFF;
-            border: 1px solid #DDD7CC;
-            border-radius: 6px;
-            overflow: hidden;
-            display: grid;
-            grid-template-columns: 1.08fr 1fr;
-        }
-        .portal-info {
-            background: #1B365D;
-            color: #F4F1EA;
-            padding: 40px 36px;
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
         }
-        .portal-crest {
+        .login-top {
+            padding: 20px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #E6E4DC;
+        }
+        .brand {
             display: inline-flex;
             align-items: center;
             gap: 10px;
-            font-size: 12px;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-            color: #C7D4E6;
-            margin-bottom: 18px;
+            text-decoration: none;
+            color: #161615;
+            font-weight: 600;
+            font-size: 15px;
         }
-        .portal-crest span {
-            width: 30px; height: 30px;
-            border: 1px solid rgba(255,255,255,0.28);
-            border-radius: 4px;
+        .brand-sq {
+            width: 26px;
+            height: 26px;
+            border-radius: 5px;
+            background: #161615;
+            color: #FAF9F5;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            color: #fff;
+            font-size: 12px;
         }
-        .portal-heading {
+        .login-center {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 32px 20px;
+        }
+        .login-box {
+            width: 100%;
+            max-width: 400px;
+            background: #FFFFFF;
+            border: 1px solid #E6E4DC;
+            border-radius: 10px;
+            padding: 36px 32px;
+        }
+        .login-title {
             font-family: 'Newsreader', Georgia, serif;
             font-size: 28px;
-            font-weight: 700;
-            line-height: 1.25;
-            margin-bottom: 12px;
-            color: #FFFFFF;
+            font-weight: 500;
+            margin: 0 0 6px;
+            letter-spacing: -0.02em;
         }
-        .portal-desc {
-            font-size: 13.5px;
-            color: #D5DFEC;
-            line-height: 1.65;
-            margin-bottom: 24px;
-        }
-        .rule-list {
-            border-top: 1px solid rgba(255,255,255,0.16);
-            padding-top: 18px;
-            list-style: none;
-            margin: 0;
-            padding-left: 0;
-        }
-        .rule-list li {
-            font-size: 12.5px;
-            color: #E2E8F0;
-            margin-bottom: 10px;
-            display: flex;
-            gap: 9px;
-            align-items: flex-start;
-        }
-        .rule-list li i {
-            color: #E6B86A;
-            margin-top: 3px;
+        .form-label {
             font-size: 12px;
-            flex-shrink: 0;
+            font-weight: 500;
+            color: #57554F;
+            margin-bottom: 5px;
         }
-        .portal-footnote {
-            margin-top: 22px;
-            padding-top: 14px;
-            border-top: 1px solid rgba(255,255,255,0.14);
-            font-family: 'IBM Plex Mono', monospace;
-            font-size: 11px;
-            color: #9FB3CE;
-        }
-        .portal-form-pane {
-            padding: 40px 36px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-        }
-        .form-heading {
-            font-family: 'Newsreader', Georgia, serif;
-            font-size: 23px;
-            font-weight: 700;
-            color: #1B365D;
-            margin-bottom: 4px;
-        }
-        .form-sub {
-            font-size: 13px;
-            color: #5A626A;
-            margin-bottom: 24px;
-        }
-        .form-label { font-size: 12.5px; font-weight: 600; color: #2F3740; }
         .form-control {
-            border-radius: 4px;
-            border: 1px solid #CFC9BC;
+            border-radius: 6px;
+            border: 1px solid #D2CFC4;
             padding: 9px 12px;
-            font-size: 13.5px;
-        }
-        .form-control:focus {
-            border-color: #1B365D;
-            box-shadow: 0 0 0 2px rgba(27,54,93,0.14);
-        }
-        .btn-submit {
-            width: 100%;
-            background: #1B365D;
-            color: #fff;
-            border: 1px solid #1B365D;
-            border-radius: 4px;
-            padding: 10px;
-            font-weight: 600;
             font-size: 14px;
+            box-shadow: none !important;
         }
-        .btn-submit:hover { background: #132744; color: #fff; }
-        .demo-hint {
-            margin-top: 22px;
-            padding: 10px 12px;
-            background: #FAF8F4;
-            border: 1px solid #E6E0D6;
-            border-radius: 4px;
-            font-size: 12px;
-            color: #5A626A;
+        .form-control:focus { border-color: #161615; }
+        .btn-ink {
+            width: 100%;
+            background: #161615;
+            color: #FFFFFF;
+            border: 1px solid #161615;
+            border-radius: 6px;
+            padding: 10px;
+            font-size: 13.5px;
+            font-weight: 500;
+            transition: background 0.14s ease;
         }
-        .demo-hint code {
-            font-family: 'IBM Plex Mono', monospace;
-            color: #1B365D;
-            background: #EEF2F7;
-            padding: 1px 5px;
-            border-radius: 3px;
-        }
-        @media (max-width: 768px) {
-            .portal-frame { grid-template-columns: 1fr; }
-            .portal-info { padding: 28px 24px; }
-            .portal-form-pane { padding: 28px 24px; }
-        }
+        .btn-ink:hover { background: #2E2D2A; color: #FFFFFF; }
     </style>
 </head>
 <body>
-<div class="portal-frame">
-    <section class="portal-info">
-        <div>
-            <div class="portal-crest">
-                <span><i class="fas fa-landmark"></i></span>
-                Thư viện Trường Đại học
-            </div>
-            <h1 class="portal-heading">Hệ thống Quản lý Lưu thông Tài liệu</h1>
-            <p class="portal-desc">
-                Phần mềm nghiệp vụ phục vụ thủ thư quản lý kho giáo trình, tài liệu tham khảo,
-                độc giả nội bộ nhà trường và xét xác nhận hoàn trả sách trước khi tốt nghiệp.
-            </p>
-            <ul class="rule-list">
-                <li><i class="fas fa-check"></i><span><strong>Mô hình phi thương mại:</strong> Miễn phí mượn sách khuyến khích đọc cho sinh viên, học viên và giảng viên có thẻ nhà trường.</span></li>
-                <li><i class="fas fa-check"></i><span><strong>Ràng buộc lưu thông:</strong> Luận văn/đồ án lưu chiểu chỉ đọc tại chỗ; chặn mượn mới khi có sách quá hạn hoặc nợ phạt.</span></li>
-                <li><i class="fas fa-check"></i><span><strong>Ràng buộc ra trường:</strong> Sinh viên bắt buộc hoàn trả đủ sách và thanh toán hết phí phạt mới được xác nhận ra trường.</span></li>
-            </ul>
-        </div>
-        <div class="portal-footnote">
-            SOA Gateway :5000 • Books • Members • Loans • Reports
-        </div>
-    </section>
+    <header class="login-top">
+        <a href="{{ url_for('opac.index') }}" class="brand">
+            <span class="brand-sq">T</span>
+            <span>Thư viện Đại học</span>
+        </a>
+        <a href="{{ url_for('opac.index') }}" class="text-decoration-none small" style="color:#57554F">
+            ← Về cổng tra cứu sách (OPAC)
+        </a>
+    </header>
 
-    <section class="portal-form-pane">
-        <h2 class="form-heading">Đăng nhập hệ thống</h2>
-        <p class="form-sub">Dành cho cán bộ thủ thư và quản trị viên thư viện</p>
+    <main class="login-center">
+        <div class="login-box">
+            <h1 class="login-title">Đăng nhập nội bộ</h1>
+            <p class="small mb-4" style="color:#57554F">Dành cho cán bộ lưu thông và quản trị thư viện</p>
 
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ 'danger' if category == 'error' else category }} py-2 small" role="alert">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else category }} py-2 small mb-3" role="alert">
                         {{ message }}
                     </div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
 
-        <form method="POST" action="{{ url_for('auth.login') }}">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <form method="POST" action="{{ url_for('auth.login') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-            <div class="mb-3">
-                <label class="form-label">Tên đăng nhập hoặc email</label>
-                <input type="text" name="username" class="form-control"
-                       placeholder="VD: librarian hoặc admin"
-                       value="{{ username or '' }}" autofocus required>
-            </div>
-
-            <div class="mb-3">
-                <label class="form-label">Mật khẩu</label>
-                <div class="input-group">
-                    <input type="password" name="password" class="form-control"
-                           placeholder="Nhập mật khẩu" required id="passwordInput">
-                    <button type="button" class="btn btn-outline-secondary" onclick="togglePassword()"
-                            style="border-color:#CFC9BC">
-                        <i class="fas fa-eye" id="eyeIcon"></i>
-                    </button>
+                <div class="mb-3">
+                    <label class="form-label">Tài khoản hoặc Email</label>
+                    <input type="text" name="username" class="form-control" value="{{ username or '' }}" autofocus required>
                 </div>
-            </div>
 
-            <div class="form-check mb-4">
-                <input class="form-check-input" type="checkbox" name="remember" id="remember">
-                <label class="form-check-label small text-muted" for="remember">
-                    Duy trì phiên làm việc trên máy quầy thủ thư
-                </label>
-            </div>
+                <div class="mb-3">
+                    <label class="form-label">Mật khẩu</label>
+                    <div class="input-group">
+                        <input type="password" name="password" class="form-control" required id="passwordInput">
+                        <button type="button" class="btn btn-outline-secondary" onclick="togglePw()" style="border-color:#D2CFC4">
+                            <i class="fas fa-eye" id="eyeIcon" style="font-size:12.5px"></i>
+                        </button>
+                    </div>
+                </div>
 
-            <button type="submit" class="btn btn-submit">Đăng nhập cổng nghiệp vụ</button>
-        </form>
+                <div class="form-check mb-4">
+                    <input class="form-check-input" type="checkbox" name="remember" id="remember">
+                    <label class="form-check-label small" style="color:#57554F" for="remember">
+                        Duy trì phiên làm việc
+                    </label>
+                </div>
 
-        <div class="demo-hint">
-            Tài khoản nội bộ: <code>admin</code> / <code>Admin@123</code> hoặc <code>librarian</code> / <code>Lib@123</code>
+                <button type="submit" class="btn-ink">Tiếp tục</button>
+            </form>
         </div>
-    </section>
-</div>
+    </main>
 
-<script>
-function togglePassword() {
-    const input = document.getElementById('passwordInput');
-    const icon = document.getElementById('eyeIcon');
-    if (input.type === 'password') {
-        input.type = 'text';
-        icon.className = 'fas fa-eye-slash';
-    } else {
-        input.type = 'password';
-        icon.className = 'fas fa-eye';
+    <script>
+    function togglePw() {
+        const input = document.getElementById('passwordInput');
+        const icon = document.getElementById('eyeIcon');
+        const show = input.type === 'password';
+        input.type = show ? 'text' : 'password';
+        icon.className = show ? 'fas fa-eye-slash' : 'fas fa-eye';
     }
-}
-</script>
+    </script>
 </body>
 </html>

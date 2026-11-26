@@ -66,6 +66,17 @@ class NotificationService:
                 'link': '/members',
             })
 
+        # Ready reservations waiting pickup at circulation desk
+        from app.models.reservation import Reservation
+        ready_holds = Reservation.query.filter_by(status='ready').count()
+        if ready_holds > 0:
+            alerts.append({
+                'type': 'info',
+                'icon': 'bookmark',
+                'message': f'{ready_holds} sách đặt trước đang giữ tại quầy chờ sinh viên đến nhận',
+                'link': '/loans/reservations?status=ready',
+            })
+
         # Graduating students blocked from clearance
         graduating_students = Member.query.filter(
             Member.member_type.in_(['student', 'postgrad']),
@@ -78,7 +89,7 @@ class NotificationService:
             alerts.append({
                 'type': 'warning',
                 'icon': 'graduation-cap',
-                'message': f'{blocked_count} sinh viên khóa tốt nghiệp còn giữ sách hoặc nợ phạt — chưa đủ điều kiện xác nhận ra trường',
+                'message': f'{blocked_count} sinh viên khóa cuối chưa trả hết sách / chưa đóng phạt để thanh lý thẻ',
                 'link': '/members/clearance?state=blocked',
             })
 

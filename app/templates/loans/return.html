@@ -1,75 +1,105 @@
 {% extends 'base.html' %}
-{% block title %}Trả sách - {{ loan.loan_code }}{% endblock %}
-{% block page_title %}Xử lý trả tài liệu{% endblock %}
+{% block title %}Nhận trả — {{ loan.loan_code }}{% endblock %}
+{% block page_title %}Tiếp nhận hoàn trả tài liệu{% endblock %}
 
 {% block content %}
-<div class="page-intro">
+<div class="section-header">
     <div>
-        <h2>Tiếp nhận trả tài liệu — {{ loan.loan_code }}</h2>
-        <p class="page-purpose">Kiểm tra tình trạng vật lý tài liệu và tự động tính phí phạt nếu quá hạn trả (2.000₫/ngày).</p>
+        <h2 class="section-title">Tiếp nhận Hoàn trả — {{ loan.loan_code }}</h2>
+        <p class="section-subtitle">Kiểm định hiện trạng tài liệu và đối soát phí phát sinh</p>
     </div>
-    <a href="{{ url_for('loans.detail', loan_id=loan.id) }}" class="btn btn-outline-secondary btn-sm">Quay lại chi tiết phiếu</a>
+    <a href="{{ url_for('loans.detail', loan_id=loan.id) }}" class="btn btn-outline-secondary btn-sm">Quay lại</a>
 </div>
 
 <div class="row g-3 justify-content-center">
     <div class="col-lg-8">
         <div class="card mb-3">
-            <div class="card-header d-flex justify-content-between align-items-center">
+            <div class="card-header">
                 <span>Thông tin phiếu mượn</span>
-                {% if loan.is_overdue %}<span class="badge-tag tag-danger">Quá hạn {{ loan.days_overdue }} ngày</span>{% else %}<span class="badge-tag tag-success">Đúng hạn</span>{% endif %}
+                {% if loan.is_overdue %}
+                <span class="status-pill pill-rose">Quá hạn {{ loan.days_overdue }} ngày</span>
+                {% else %}
+                <span class="status-pill pill-emerald">Trong hạn</span>
+                {% endif %}
             </div>
             <div class="card-body">
-                <div class="row g-2">
-                    <div class="col-md-6"><div class="info-field"><span class="info-field-label">Độc giả</span><span class="fw-semibold">{{ loan.member.full_name if loan.member else '-' }}</span></div></div>
-                    <div class="col-md-6"><div class="info-field"><span class="info-field-label">Tài liệu</span><span class="fw-semibold">{{ loan.book.title if loan.book else '-' }}</span></div></div>
-                    <div class="col-md-6"><div class="info-field"><span class="info-field-label">Ngày mượn</span><span>{{ loan.loan_date.strftime('%d/%m/%Y') if loan.loan_date else '-' }}</span></div></div>
-                    <div class="col-md-6"><div class="info-field"><span class="info-field-label">Hạn trả</span><span class="{% if loan.is_overdue %}text-danger fw-semibold{% endif %}">{{ loan.due_date.strftime('%d/%m/%Y') if loan.due_date else '-' }}</span></div></div>
+                <div class="row g-3">
+                    <div class="col-md-6"><div class="info-field"><span class="info-field-label">Độc giả</span><span class="fw-semibold">{{ loan.member.full_name if loan.member else '—' }}</span></div></div>
+                    <div class="col-md-6"><div class="info-field"><span class="info-field-label">Tài liệu</span><span class="fw-semibold">{{ loan.book.title if loan.book else '—' }}</span></div></div>
+                    <div class="col-md-6"><div class="info-field"><span class="info-field-label">Ngày mượn</span><span>{{ loan.loan_date | fmt_date }}</span></div></div>
+                    <div class="col-md-6"><div class="info-field"><span class="info-field-label">Hạn trả</span><span class="{% if loan.is_overdue %}text-danger fw-semibold{% endif %}">{{ loan.due_date | fmt_date }}</span></div></div>
                 </div>
             </div>
         </div>
 
         <div class="card">
-            <div class="card-header">Biên nhận trả sách</div>
-            <form method="POST">
+            <div class="card-header">Biên nhận hoàn trả</div>
+            <form method="POST" data-no-pjax>
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="card-body">
                     <div class="mb-3">
-                        <label class="form-label">Tình trạng tài liệu khi tiếp nhận lại</label>
-                        <select name="condition_in" class="form-select">
-                            <option value="good">Tốt — Nguyên vẹn, đủ trang</option>
-                            <option value="fair">Khá — Có dấu hiệu sử dụng bình thường</option>
-                            <option value="poor">Kém — Rách bìa / cần bảo trì</option>
+                        <label class="form-label">Hiện trạng tài liệu khi tiếp nhận</label>
+                        <select name="condition_in" class="form-select" id="conditionSelect">
+                            <option value="good">Nguyên vẹn</option>
+                            <option value="fair">Khá (hao mòn sử dụng thông thường)</option>
+                            <option value="poor">Cũ nhẹ</option>
+                            <option value="damaged">Hư hỏng nặng (rách trang / hư gáy — tính phí tu bổ {{ damage_fee | vnd }})</option>
                         </select>
                     </div>
-                    {% if loan.is_overdue %}
-                    <div class="alert alert-warning mb-3">
-                        <div class="mb-2">
-                            <strong>Phí phạt quá hạn tự động: {{ estimated_fine | vnd }}</strong>
-                            <div class="small">({{ loan.days_overdue }} ngày quá hạn × {{ fine_per_day | vnd }}/ngày)</div>
+
+                    <div id="feeBox" class="alert alert-warning mb-3 {% if not loan.is_overdue %}d-none{% endif %}">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <strong>Tiền phạt / đền bù phát sinh:</strong>
+                            <strong class="fs-5 text-danger" id="totalFeeDisplay">{{ estimated_fine | vnd }}</strong>
                         </div>
-                        <div class="d-flex flex-wrap gap-3 pt-2 border-top" style="border-color:rgba(154,91,19,0.2)!important">
-                            <div class="form-check">
-                                <input type="checkbox" name="pay_now" id="payNow" class="form-check-input" value="1" checked>
-                                <label class="form-check-label fw-medium" for="payNow">Độc giả thanh toán phạt ngay tại quầy</label>
-                            </div>
-                            <div class="form-check">
-                                <input type="checkbox" name="waive_fine" id="waiveFine" class="form-check-input" value="1">
-                                <label class="form-check-label" for="waiveFine">Miễn phạt (có lý do chính đáng)</label>
-                            </div>
+                        <div class="d-flex flex-wrap gap-3 pt-2 border-top" style="border-color:rgba(180,83,9,0.2)!important">
+                            <label class="form-check-label d-flex align-items-center gap-2" style="cursor:pointer">
+                                <input type="radio" name="fee_action" value="pay_now" class="form-check-input mt-0" checked>
+                                <span class="fw-medium">Thu tiền phạt ngay tại quầy</span>
+                            </label>
+                            <label class="form-check-label d-flex align-items-center gap-2" style="cursor:pointer">
+                                <input type="radio" name="fee_action" value="defer" class="form-check-input mt-0">
+                                <span>Ghi nợ vào thẻ độc giả</span>
+                            </label>
+                            <label class="form-check-label d-flex align-items-center gap-2" style="cursor:pointer">
+                                <input type="radio" name="fee_action" value="waive" class="form-check-input mt-0">
+                                <span>Miễn phạt</span>
+                            </label>
                         </div>
                     </div>
-                    {% endif %}
+
                     <div>
-                        <label class="form-label">Ghi chú trả sách</label>
+                        <label class="form-label">Ghi chú tiếp nhận</label>
                         <textarea name="notes" class="form-control" rows="2"></textarea>
                     </div>
                 </div>
                 <div class="card-footer d-flex gap-2">
-                    <button type="submit" class="btn btn-success">Xác nhận hoàn trả vào kho</button>
+                    <button type="submit" class="btn btn-success">Xác nhận nhập kho</button>
                     <a href="{{ url_for('loans.detail', loan_id=loan.id) }}" class="btn btn-outline-secondary">Hủy</a>
                 </div>
             </form>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script data-page-script>
+(function() {
+    const overdueFine = {{ estimated_fine | int }};
+    const damageFee = {{ damage_fee | int }};
+    const sel = document.getElementById('conditionSelect');
+    const box = document.getElementById('feeBox');
+    const disp = document.getElementById('totalFeeDisplay');
+    sel?.addEventListener('change', function() {
+        const total = overdueFine + (this.value === 'damaged' ? damageFee : 0);
+        if (total > 0) {
+            disp.textContent = total.toLocaleString('vi-VN') + '₫';
+            box.classList.remove('d-none');
+        } else {
+            box.classList.add('d-none');
+        }
+    });
+})();
+</script>
 {% endblock %}

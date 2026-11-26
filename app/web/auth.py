@@ -1,11 +1,21 @@
 """
 Auth Web Routes
 """
-from flask import Blueprint, render_template, redirect, url_for, flash, request, session
+from urllib.parse import urlsplit
+from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import current_user, login_required
 from app.services.auth_service import AuthService, PermissionService
 
 auth_bp = Blueprint('auth', __name__)
+
+
+def _safe_next_url(target):
+    if not target:
+        return None
+    parts = urlsplit(target)
+    if parts.scheme or parts.netloc or not target.startswith('/'):
+        return None
+    return target
 
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
@@ -19,7 +29,7 @@ def login():
         remember = bool(request.form.get('remember'))
 
         if not username or not password:
-            flash('Vui lòng nhập đầy đủ thông tin.', 'danger')
+            flash('Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu.', 'danger')
             return render_template('auth/login.html')
 
         user, error = AuthService.authenticate(username, password, remember)
@@ -27,8 +37,7 @@ def login():
             flash(error, 'danger')
             return render_template('auth/login.html', username=username)
 
-        flash(f'Chào mừng, {user.full_name}!', 'success')
-        next_page = request.args.get('next')
+        next_page = _safe_next_url(request.args.get('next'))
         return redirect(next_page or url_for('dashboard.index'))
 
     return render_template('auth/login.html')
@@ -38,7 +47,6 @@ def login():
 @login_required
 def logout():
     AuthService.logout()
-    flash('Bạn đã đăng xuất thành công.', 'info')
     return redirect(url_for('auth.login'))
 
 
@@ -47,18 +55,17 @@ def logout():
 def profile():
     if request.method == 'POST':
         action = request.form.get('action')
-
         if action == 'change_password':
-            old_pw = request.form.get('old_password')
-            new_pw = request.form.get('new_password')
-            confirm_pw = request.form.get('confirm_password')
+            old_pw = request.form.get('old_password', '')
+            new_pw = request.form.get('new_password', '')
+            confirm_pw = request.form.get('confirm_password', '')
 
             if new_pw != confirm_pw:
-                flash('Mật khẩu xác nhận không khớp.', 'danger')
+                flash('Mật khẩu xác nhận không trùng khớp.', 'danger')
             else:
                 success, error = AuthService.change_password(current_user, old_pw, new_pw)
                 if success:
-                    flash('Đổi mật khẩu thành công!', 'success')
+                    flash('Đã cập nhật mật khẩu thành công.', 'success')
                 else:
                     flash(error, 'danger')
 
@@ -88,17 +95,20 @@ def create_user():
         if error:
             flash(error, 'danger')
         else:
-            flash(f'Tạo tài khoản {user.username} thành công!', 'success')
+            flash(f'Đã khởi tạo tài khoản nhân sự {user.username}.', 'success')
             return redirect(url_for('auth.users'))
 
     return render_template('auth/create_user.html')
 
 
-@auth_bp.route('/users/<int:user_id>/toggle')
+@auth_bp.route('/users/<int:user_id>/toggle', methods=['POST'])
 @login_required
 @PermissionService.require_admin
 def toggle_user(user_id):
-    user = AuthService.toggle_user_status(user_id)
-    status_text = 'kích hoạt' if user.is_active else 'vô hiệu hóa'
-    flash(f'Tài khoản {user.username} đã được {status_text}.', 'success')
+    user, error = AuthService.toggle_user_status(user_id, actor_id=current_user.id)
+    if error:
+        flash(error, 'danger')
+    else:
+        status_text = 'kích hoạt' if user.is_active else 'tạm khóa'
+        flash(f'Tài khoản {user.username} đã được {status_text}.', 'success')
     return redirect(url_for('auth.users'))

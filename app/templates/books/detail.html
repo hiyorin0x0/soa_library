@@ -3,151 +3,200 @@
 {% block page_title %}Chi tiết tài liệu{% endblock %}
 
 {% block content %}
-<div class="page-intro">
+<div class="section-header">
     <div>
         <nav aria-label="breadcrumb" class="mb-1">
             <ol class="breadcrumb mb-0">
-                <li class="breadcrumb-item"><a href="{{ url_for('books.index') }}">Danh mục tài liệu</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('books.index') }}" class="text-decoration-none">Danh mục tài liệu</a></li>
                 <li class="breadcrumb-item active">{{ book.isbn }}</li>
             </ol>
         </nav>
-        <h2>{{ book.title }}</h2>
-        <p class="page-purpose">{{ book.author }}{% if book.department %} • {{ book.department }}{% endif %}</p>
+        <h2 class="section-title">{{ book.title }}</h2>
+        <p class="section-subtitle">{{ book.author }}{% if book.department %} • {{ book.department }}{% endif %}</p>
     </div>
     <div class="d-flex gap-2">
-        <a href="{{ url_for('books.edit', book_id=book.id) }}" class="btn btn-outline-secondary btn-sm">
-            <i class="fas fa-pen me-1"></i>Chỉnh sửa
+        <a href="{{ url_for('opac.book_detail', book_id=book.id) }}" class="btn btn-outline-secondary btn-sm" data-no-pjax>
+            <i class="fas fa-compass"></i>Xem trên OPAC
+        </a>
+        <a href="{{ url_for('books.edit', book_id=book.id) }}" class="btn btn-outline-primary btn-sm">
+            <i class="fas fa-pen"></i>Chỉnh sửa
         </a>
         {% if current_user.is_admin %}
-        <form method="POST" action="{{ url_for('books.delete', book_id=book.id) }}" onsubmit="return confirm('Xóa đầu tài liệu này?')">
+        <form method="POST" action="{{ url_for('books.delete', book_id=book.id) }}" data-no-pjax onsubmit="return confirm('Xác nhận xóa tài liệu này khỏi danh mục?')">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button type="submit" class="btn btn-outline-danger btn-sm">Xóa</button>
+            <button type="submit" class="btn btn-outline-danger btn-sm"><i class="fas fa-trash"></i>Xóa</button>
         </form>
         {% endif %}
     </div>
 </div>
 
 <div class="row g-3">
-    <div class="col-lg-4">
+    <div class="col-lg-4 col-xl-3">
         <div class="card mb-3">
             <div class="card-body">
-                {% if book.cover_image %}
-                <img src="{{ url_for('static', filename='img/books/' + book.cover_image) }}"
-                     class="w-100 rounded mb-3" style="max-height:260px;object-fit:cover;border:1px solid var(--border)">
-                {% endif %}
+                <div class="book-cover-lg mb-3">
+                    {% if book.cover_image %}
+                    <img src="{{ url_for('static', filename='img/books/' + book.cover_image) }}" alt="">
+                    {% else %}
+                    <div>
+                        <div class="book-jacket-band" style="background:{{ book.category.color if book.category else '#161615' }}"></div>
+                        <div class="cover-cat">{{ book.category.name if book.category else 'Thư viện Đại học' }}</div>
+                    </div>
+                    <div class="cover-title">{{ book.title }}</div>
+                    <div class="cover-author">{{ book.author }}</div>
+                    {% endif %}
+                </div>
 
-                <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
-                    <span class="text-muted small">Quy chế lưu thông</span>
+                <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom" style="border-color:var(--border-hairline)!important">
+                    <span class="text-muted small">Phân loại phục vụ</span>
+                    {% if book.status != 'available' %}
+                    {{ 'unavailable' | status_badge | safe }}
+                    {% else %}
                     {{ (book.circulation_type or 'borrowable') | status_badge | safe }}
+                    {% endif %}
                 </div>
 
                 <div class="row g-2 text-center mb-3">
                     <div class="col-4">
-                        <div class="info-field">
-                            <div class="fw-bold fs-4" style="color:var(--navy)">{{ book.available_copies }}</div>
-                            <small class="text-muted">Trên kệ</small>
+                        <div class="info-field px-1">
+                            <div class="fw-bold fs-5 text-primary">{{ book.available_copies }}</div>
+                            <div class="text-muted" style="font-size:11px">Trên kệ</div>
                         </div>
                     </div>
                     <div class="col-4">
-                        <div class="info-field">
-                            <div class="fw-bold fs-4">{{ book.total_copies }}</div>
-                            <small class="text-muted">Tổng bản</small>
+                        <div class="info-field px-1">
+                            <div class="fw-bold fs-5">{{ book.total_copies }}</div>
+                            <div class="text-muted" style="font-size:11px">Tổng bản</div>
                         </div>
                     </div>
                     <div class="col-4">
-                        <div class="info-field">
-                            <div class="fw-bold fs-4" style="color:var(--forest)">{{ book.borrow_count }}</div>
-                            <small class="text-muted">Lượt mượn</small>
+                        <div class="info-field px-1">
+                            <div class="fw-bold fs-5 text-success">{{ book.borrow_count }}</div>
+                            <div class="text-muted" style="font-size:11px">Lượt mượn</div>
                         </div>
                     </div>
                 </div>
 
-                {% if (book.circulation_type or 'borrowable') == 'reference_only' %}
-                <div class="alert alert-info py-2 mb-0 small">
-                    <i class="fas fa-book-reader me-1"></i>
-                    Tài liệu thuộc diện <strong>Chỉ đọc tại chỗ</strong>. Không lập phiếu mượn mang về nhà.
-                </div>
-                {% elif book.is_available %}
-                <a href="{{ url_for('loans.create') }}?book_id={{ book.id }}" class="btn btn-primary w-100">
-                    <i class="fas fa-plus me-1"></i>Lập phiếu mượn tài liệu này
+                {% if book.status != 'available' %}
+                <button class="btn btn-outline-secondary w-100" disabled>Tạm ngưng lưu thông</button>
+                {% elif (book.circulation_type or 'borrowable') == 'reference_only' %}
+                <button class="btn btn-outline-secondary w-100" disabled>Chỉ phục vụ đọc tại chỗ</button>
+                {% elif book.available_copies > 0 %}
+                <a href="{{ url_for('loans.create', book_id=book.id) }}" class="btn btn-primary w-100">
+                    <i class="fas fa-plus"></i>Lập phiếu mượn
                 </a>
                 {% else %}
-                <button class="btn btn-outline-secondary w-100" disabled>Hiện đã hết bản trên kệ</button>
+                <a href="{{ url_for('loans.reservations') }}?book_id={{ book.id }}" class="btn btn-outline-primary w-100">
+                    <i class="fas fa-bookmark"></i>Xem hàng đợi đặt chỗ
+                </a>
                 {% endif %}
             </div>
         </div>
     </div>
 
-    <div class="col-lg-8">
-        <div class="card mb-3">
-            <div class="card-header">Thông tin thư mục & Tài sản</div>
+    <div class="col-lg-8 col-xl-9 d-flex flex-column gap-3">
+        <div class="card">
+            <div class="card-header">Hồ sơ biên mục</div>
             <div class="card-body">
-                <div class="row g-2">
-                    <div class="col-md-6">
+                <div class="row g-3">
+                    <div class="col-sm-6 col-md-4">
                         <div class="info-field">
-                            <span class="info-field-label">Mã ISBN / Lưu chiểu</span>
+                            <span class="info-field-label">ISBN / Ký hiệu lưu chiểu</span>
                             <code>{{ book.isbn }}</code>
                         </div>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-sm-6 col-md-4">
                         <div class="info-field">
-                            <span class="info-field-label">Ngành / Thể loại</span>
-                            <span>{{ book.category.name if book.category else '-' }}</span>
+                            <span class="info-field-label">Chuyên ngành</span>
+                            <span class="fw-medium">{{ book.category.name if book.category else '—' }}</span>
                         </div>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-sm-6 col-md-4">
                         <div class="info-field">
-                            <span class="info-field-label">Khoa phụ trách</span>
-                            <span>{{ book.department or '-' }}</span>
+                            <span class="info-field-label">Vị trí kệ</span>
+                            <span class="code-chip">{{ book.location or '—' }}</span>
                         </div>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-sm-6 col-md-4">
                         <div class="info-field">
-                            <span class="info-field-label">Vị trí xếp kệ</span>
-                            <span class="font-mono" style="background:none;padding:0">{{ book.location or '-' }}</span>
+                            <span class="info-field-label">Khoa / Viện quản lý</span>
+                            <span>{{ book.department or '—' }}</span>
                         </div>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-sm-6 col-md-4">
                         <div class="info-field">
                             <span class="info-field-label">Nhà xuất bản</span>
-                            <span>{{ book.publisher or '-' }}</span>
+                            <span>{{ book.publisher or '—' }}</span>
                         </div>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-sm-6 col-md-4">
                         <div class="info-field">
-                            <span class="info-field-label">Năm xuất bản</span>
-                            <span>{{ book.publish_year or '-' }}</span>
+                            <span class="info-field-label">Năm XB & Số trang</span>
+                            <span>{{ book.publish_year or '—' }}{% if book.pages %} • {{ book.pages }} trang{% endif %}</span>
                         </div>
                     </div>
-                    <div class="col-md-3">
-                        <div class="info-field">
-                            <span class="info-field-label">Số trang</span>
-                            <span>{{ book.pages or '-' }}</span>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
+                    <div class="col-sm-6">
                         <div class="info-field">
                             <span class="info-field-label">Ngôn ngữ</span>
-                            <span>{{ book.language or '-' }}</span>
+                            <span>{{ book.language or 'Tiếng Việt' }}</span>
                         </div>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-sm-6">
                         <div class="info-field">
-                            <span class="info-field-label">Giá bìa (Căn cứ đền bù mất sách)</span>
+                            <span class="info-field-label">Giá bìa sách</span>
                             <span class="fw-semibold">{{ book.price | vnd }}</span>
-                            <span class="text-muted small">• Mượn miễn phí</span>
                         </div>
                     </div>
                 </div>
 
                 {% if book.description %}
-                <div class="mt-3 pt-3 border-top" style="border-color:var(--border-light)!important">
-                    <div class="info-field-label mb-1">Tóm tắt / Ghi chú</div>
-                    <p class="mb-0" style="line-height:1.65">{{ book.description }}</p>
+                <div class="mt-3 pt-3 border-top" style="border-color:var(--border-hairline)!important">
+                    <span class="info-field-label mb-1">Tóm tắt nội dung</span>
+                    <p class="mb-0 text-secondary" style="line-height:1.65">{{ book.description }}</p>
                 </div>
                 {% endif %}
             </div>
         </div>
+
+        {% if reservations %}
+        <div class="card">
+            <div class="card-header">Danh sách đặt giữ chỗ đang hiệu lực ({{ reservations | length }})</div>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Mã phiếu</th>
+                            <th>Độc giả</th>
+                            <th>Hạn nhận tại quầy</th>
+                            <th>Trạng thái</th>
+                            <th class="text-end">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in reservations %}
+                        <tr>
+                            <td><code>{{ r.reservation_code }}</code></td>
+                            <td>
+                                <span class="fw-medium">{{ r.member.full_name if r.member else '—' }}</span>
+                                {% if r.member and r.member.student_id %}<span class="text-muted small ms-1">({{ r.member.student_id }})</span>{% endif %}
+                            </td>
+                            <td>{{ r.expires_at | fmt_date }}</td>
+                            <td>{{ r.status | status_badge | safe }}</td>
+                            <td class="text-end">
+                                {% if r.status == 'ready' %}
+                                <form method="POST" action="{{ url_for('loans.fulfill_reservation', reservation_id=r.id) }}" class="d-inline" data-no-pjax>
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-success btn-sm">Bàn giao sách</button>
+                                </form>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
 
         <div class="card">
             <div class="card-header">Lịch sử lưu thông gần đây</div>
@@ -165,17 +214,17 @@
                     <tbody>
                         {% for loan in recent_loans %}
                         <tr>
-                            <td><a href="{{ url_for('loans.detail', loan_id=loan.id) }}"><code>{{ loan.loan_code }}</code></a></td>
+                            <td><a href="{{ url_for('loans.detail', loan_id=loan.id) }}" class="text-decoration-none"><code>{{ loan.loan_code }}</code></a></td>
                             <td>
-                                {{ loan.member.full_name if loan.member else '-' }}
+                                {{ loan.member.full_name if loan.member else '—' }}
                                 {% if loan.member and loan.member.student_id %}<small class="text-muted">({{ loan.member.student_id }})</small>{% endif %}
                             </td>
-                            <td>{{ loan.loan_date.strftime('%d/%m/%Y') if loan.loan_date else '-' }}</td>
-                            <td>{{ loan.due_date.strftime('%d/%m/%Y') if loan.due_date else '-' }}</td>
+                            <td>{{ loan.loan_date | fmt_date }}</td>
+                            <td>{{ loan.due_date | fmt_date }}</td>
                             <td>{{ loan.status | status_badge | safe }}</td>
                         </tr>
                         {% else %}
-                        <tr><td colspan="5" class="text-center text-muted py-3">Chưa có lượt mượn nào</td></tr>
+                        <tr><td colspan="5" class="text-center text-muted py-4">Chưa có giao dịch mượn trả.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>

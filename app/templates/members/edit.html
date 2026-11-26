@@ -1,24 +1,24 @@
 {% extends 'base.html' %}
-{% block title %}Cập nhật hồ sơ độc giả{% endblock %}
-{% block page_title %}Cập nhật thông tin độc giả{% endblock %}
+{% block title %}Cập nhật độc giả{% endblock %}
+{% block page_title %}Cập nhật hồ sơ độc giả{% endblock %}
 
 {% block content %}
-<div class="page-intro">
+<div class="section-header">
     <div>
-        <h2>Chỉnh sửa hồ sơ: {{ member.full_name }}</h2>
-        <p class="page-purpose">MSSV/MCB: {{ member.student_id or '-' }} • Mã thẻ thư viện: {{ member.member_code }}</p>
+        <h2 class="section-title">{{ member.full_name }}</h2>
+        <p class="section-subtitle">Mã định danh: {{ member.student_id or '—' }} • Số thẻ: {{ member.member_code }}</p>
     </div>
     <a href="{{ url_for('members.detail', member_id=member.id) }}" class="btn btn-outline-secondary btn-sm">
-        <i class="fas fa-arrow-left me-1"></i>Quay lại hồ sơ
+        <i class="fas fa-arrow-left"></i>Quay lại
     </a>
 </div>
 
 <div class="row g-3">
     <div class="col-lg-8">
-        <form method="POST">
+        <form method="POST" data-no-pjax>
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="card">
-                <div class="card-header">Thông tin độc giả</div>
+                <div class="card-header">Thông tin hồ sơ</div>
                 <div class="card-body">
                     <div class="row g-3">
                         <div class="col-md-6">
@@ -46,11 +46,11 @@
                             <input type="text" name="class_name" class="form-control" value="{{ member.class_name or '' }}">
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">Khóa học</label>
+                            <label class="form-label">Khóa</label>
                             <input type="text" name="cohort" class="form-control" value="{{ member.cohort or '' }}">
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">Năm dự kiến ra trường</label>
+                            <label class="form-label">Năm tốt nghiệp</label>
                             <input type="number" name="graduation_year" class="form-control" value="{{ member.graduation_year or '' }}">
                         </div>
                         <div class="col-md-4">
@@ -62,7 +62,7 @@
                             </select>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">Đối tượng</label>
+                            <label class="form-label">Nhóm thẻ</label>
                             <select name="member_type" class="form-select">
                                 <option value="student" {% if member.member_type == 'student' %}selected{% endif %}>Sinh viên</option>
                                 <option value="postgrad" {% if member.member_type == 'postgrad' %}selected{% endif %}>Học viên cao học</option>
@@ -73,23 +73,25 @@
                             <label class="form-label">Trạng thái thẻ</label>
                             <select name="status" class="form-select">
                                 <option value="active" {% if member.status == 'active' %}selected{% endif %}>Đang hoạt động</option>
-                                <option value="suspended" {% if member.status == 'suspended' %}selected{% endif %}>Tạm khóa</option>
-                                <option value="graduated" {% if member.status == 'graduated' %}selected{% endif %}>Đã ra trường</option>
+                                <option value="suspended" {% if member.status == 'suspended' %}selected{% endif %}>Đang khóa thẻ</option>
+                                {% if member.is_student_group %}
+                                <option value="graduated" {% if member.status == 'graduated' %}selected{% endif %}>Đã thanh lý thẻ (Ra trường)</option>
+                                {% endif %}
                                 <option value="inactive" {% if member.status == 'inactive' %}selected{% endif %}>Ngưng hoạt động</option>
                             </select>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Hạn thẻ</label>
                             <input type="date" name="membership_end" class="form-control"
-                                   value="{{ member.membership_end.strftime('%Y-%m-%d') if member.membership_end else '' }}">
+                                   value="{{ member.membership_end.strftime('%Y-%m-%d') if member.membership_end and member.membership_end is not string else (member.membership_end[:10] if member.membership_end else '') }}">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Ngày sinh</label>
                             <input type="date" name="date_of_birth" class="form-control"
-                                   value="{{ member.date_of_birth.strftime('%Y-%m-%d') if member.date_of_birth else '' }}">
+                                   value="{{ member.date_of_birth.strftime('%Y-%m-%d') if member.date_of_birth and member.date_of_birth is not string else (member.date_of_birth[:10] if member.date_of_birth else '') }}">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">CCCD</label>
+                            <label class="form-label">Số CCCD</label>
                             <input type="text" name="id_card" class="form-control" value="{{ member.id_card or '' }}">
                         </div>
                         <div class="col-12">
@@ -108,22 +110,19 @@
 
     <div class="col-lg-4">
         <div class="card">
-            <div class="card-header">Tình trạng nghĩa vụ hiện tại</div>
+            <div class="card-header">Tóm tắt tài khoản</div>
             <div class="card-body">
-                <div class="mb-2 d-flex justify-content-between">
-                    <span class="text-muted">Trạng thái:</span>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Trạng thái hiện tại</span>
                     {{ member.status | status_badge | safe }}
                 </div>
-                <div class="mb-2 d-flex justify-content-between">
-                    <span class="text-muted">Đang mượn:</span>
-                    <strong>{{ member.active_loans_count }}/{{ member.max_loans_allowed }} cuốn</strong>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Tài liệu đang mượn</span>
+                    <strong>{{ member.active_loans_count }} / {{ member.max_loans_allowed }} cuốn</strong>
                 </div>
-                <div class="mb-2 d-flex justify-content-between">
-                    <span class="text-muted">Phí phạt chưa đóng:</span>
+                <div class="d-flex justify-content-between">
+                    <span class="text-muted">Phạt chưa đóng</span>
                     <strong class="{% if member.unpaid_fine > 0 %}text-danger{% endif %}">{{ member.unpaid_fine | vnd }}</strong>
-                </div>
-                <div class="small text-muted mt-3 pt-2 border-top">
-                    Lưu ý: Hệ thống chỉ cho phép chuyển sang trạng thái <strong>Đã ra trường</strong> khi độc giả đã trả hết sách và thanh toán đủ công nợ phạt.
                 </div>
             </div>
         </div>

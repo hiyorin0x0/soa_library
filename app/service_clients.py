@@ -15,9 +15,14 @@ class RemoteObject(SimpleNamespace):
     def __getitem__(self, name):
         return getattr(self, name)
 
+    def get(self, name, default=None):
+        return getattr(self, name, default)
+
     def __getattr__(self, name):
         if name == 'is_membership_valid' and hasattr(self, 'membership_end'):
             return self.membership_end is None or self.membership_end >= date.today()
+        if name == 'is_student_group' and hasattr(self, 'member_type'):
+            return self.member_type in ('student', 'postgrad')
         if name == 'age' and getattr(self, 'date_of_birth', None):
             today, born = date.today(), self.date_of_birth
             return today.year - born.year - ((today.month, today.day) < (born.month, born.day))
@@ -30,14 +35,16 @@ class RemoteObject(SimpleNamespace):
         raise AttributeError(name)
 
 
-_DATE_FIELDS = {'date_of_birth', 'membership_start', 'membership_end', 'loan_date', 'due_date', 'return_date', 'clearance_date'}
-_DATETIME_FIELDS = {'created_at', 'updated_at', 'last_login', 'fine_paid_at'}
+_DATE_FIELDS = {
+    'date_of_birth', 'membership_start', 'membership_end',
+    'loan_date', 'due_date', 'return_date', 'clearance_date', 'expires_at',
+}
+_DATETIME_FIELDS = {'created_at', 'updated_at', 'last_login', 'fine_paid_at', 'notified_at'}
 
 
 def _decode(value, key=None):
     if isinstance(value, dict):
         converted = {name: _decode(item, name) for name, item in value.items()}
-        # Keep the legacy API's category label while giving Jinja the category object it expects.
         if 'category_info' in converted:
             converted['category'] = converted.pop('category_info')
         return RemoteObject(**converted)
@@ -45,7 +52,7 @@ def _decode(value, key=None):
         return [_decode(item) for item in value]
     if isinstance(value, str) and key in _DATE_FIELDS:
         try:
-            return date.fromisoformat(value)
+            return date.fromisoformat(value[:10])
         except ValueError:
             return value
     if isinstance(value, str) and key in _DATETIME_FIELDS:
@@ -102,7 +109,7 @@ class ServiceClient:
     def request(self, method, path='', params=None, payload=None, files=None):
         url = f"{self.base_url}/{path.lstrip('/')}"
         if params:
-            url += '?' + urlencode({key: value for key, value in params.items() if value is not None})
+            url += '?' + urlencode({key: value for key, value in params.items() if value is not None and value != ''})
         headers = {'Authorization': f'Bearer {create_service_token(self.service)}'}
         body = None
         if payload is not None and hasattr(payload, 'to_dict'):
@@ -131,7 +138,7 @@ class ServiceClient:
             headers['Content-Type'] = 'application/json'
 
         try:
-            response = urlopen(Request(url, data=body, headers=headers, method=method), timeout=5)
+            response = urlopen(Request(url, data=body, headers=headers, method=method), timeout=8)
             raw = response.read()
         except HTTPError as error:
             raw = error.read()
@@ -144,15 +151,15 @@ class ServiceClient:
             if error.code == 409:
                 return error_payload
             abort(error.code if error.code in (400, 403, 404, 409, 422) else 502,
-                  description=message or f"Service {self.service} trả về lỗi.")
+                  description=message or f"Dịch vụ {self.service} trả về lỗi.")
         except (URLError, TimeoutError, OSError):
-            abort(503, description=f"Service {self.service} hiện không khả dụng.")
+            abort(503, description=f"Dịch vụ {self.service} hiện không khả dụng.")
         if not raw:
             return {}
         try:
             return json.loads(raw.decode('utf-8'))
         except ValueError:
-            abort(502, description=f"Service {self.service} trả về dữ liệu không hợp lệ.")
+            abort(502, description=f"Dịch vụ {self.service} trả về dữ liệu không hợp lệ.")
 
     def _data(self, method, path='', params=None, payload=None, files=None):
         response = self.request(method, path, params, payload, files)
@@ -163,14 +170,24 @@ class BooksClient(ServiceClient):
     service = 'books'
 
     def get_all_books(self, page=1, per_page=12, search=None, category_id=None,
-                      status=None, circulation_type=None, sort_by='title', order='asc'):
+                      status=None, circulation_type=None, department=None,
+                      sort_by='title', order='asc'):
         return RemotePagination(self.request('GET', '', {
             'page': page, 'per_page': per_page, 'q': search, 'category': category_id,
-            'status': status, 'circulation_type': circulation_type, 'sort': sort_by, 'order': order,
+            'status': status, 'circulation_type': circulation_type, 'department': department,
+            'sort': sort_by, 'order': order,
         }))
 
     def get_all_categories(self):
         return [_decode(item) for item in self._data('GET', 'categories')]
+
+    def get_departments(self):
+        return self._data('GET', 'departments')
+
+    def get_opac_facets(self, search=None, category_id=None, availability=None):
+        return self._data('GET', 'facets', {
+            'q': search, 'category': category_id, 'availability': availability,
+        })
 
     def get_book_by_id(self, book_id):
         return _decode(self._data('GET', str(book_id)))
@@ -179,20 +196,26 @@ class BooksClient(ServiceClient):
         return loans_client.get_all_loans(book_id=book_id, per_page=limit).items
 
     def create_book(self, data, cover_file=None):
-        result = self.request('POST', '', payload=data, files={'cover_image': cover_file} if cover_file else None)
+        has_file = cover_file and getattr(cover_file, 'filename', '')
+        result = self.request('POST', '', payload=data, files={'cover_image': cover_file} if has_file else None)
         return _decode(result.get('data')), result.get('error') or result.get('message')
 
     def update_book(self, book_id, data, cover_file=None):
-        result = self.request('PUT', str(book_id), payload=data, files={'cover_image': cover_file} if cover_file else None)
+        has_file = cover_file and getattr(cover_file, 'filename', '')
+        result = self.request('PUT', str(book_id), payload=data, files={'cover_image': cover_file} if has_file else None)
         return _decode(result.get('data')), result.get('error') or result.get('message')
 
     def delete_book(self, book_id):
         result = self.request('DELETE', str(book_id))
-        return result.get('success', not result.get('message')), result.get('error') or result.get('message')
+        return result.get('success', False), result.get('error') or result.get('message')
 
-    def create_category(self, name, description=None, color='#6B7280'):
+    def create_category(self, name, description=None, color='#1B365D'):
         result = self.request('POST', 'categories', payload={'name': name, 'description': description, 'color': color})
         return _decode(result.get('data')), result.get('error') or result.get('message')
+
+    def delete_category(self, category_id):
+        result = self.request('DELETE', f'categories/{category_id}')
+        return result.get('success', False), result.get('error') or result.get('message')
 
     def __getattr__(self, name):
         if name in {'get_statistics', 'get_popular_books', 'search_books'}:
@@ -209,14 +232,27 @@ class BooksClient(ServiceClient):
 class MembersClient(ServiceClient):
     service = 'members'
 
-    def get_all_members(self, page=1, per_page=15, search=None, status=None, member_type=None, faculty=None):
+    def get_all_members(self, page=1, per_page=15, search=None, status=None,
+                        member_type=None, faculty=None, sort_by='full_name', order='asc'):
         return RemotePagination(self.request('GET', '', {
             'page': page, 'per_page': per_page, 'q': search, 'status': status,
-            'type': member_type, 'faculty': faculty,
+            'type': member_type, 'faculty': faculty, 'sort': sort_by, 'order': order,
         }))
 
     def get_member_by_id(self, member_id):
         return _decode(self._data('GET', str(member_id)))
+
+    def get_member_by_code(self, code):
+        result = self.request('GET', 'by-code', {'code': code})
+        if result.get('status') == 'error':
+            return None
+        return _decode(result.get('data'))
+
+    def lookup_reader_portal(self, identifier, email_or_phone):
+        result = self.request('POST', 'lookup', payload={'identifier': identifier, 'verify': email_or_phone})
+        if result.get('status') == 'error' or not result.get('data'):
+            return None, result.get('message') or 'Không tìm thấy thông tin.'
+        return _decode(result.get('data')), None
 
     def get_faculties(self):
         return self._data('GET', 'faculties')
@@ -229,9 +265,13 @@ class MembersClient(ServiceClient):
         result = self.request('PUT', str(member_id), payload=data)
         return _decode(result.get('data')), result.get('error') or result.get('message')
 
+    def renew_card(self, member_id, months=12):
+        result = self.request('POST', f'{member_id}/renew-card', payload={'months': months})
+        return _decode(result.get('data')), result.get('error') or result.get('message')
+
     def delete_member(self, member_id):
         result = self.request('DELETE', str(member_id))
-        return result.get('success', not result.get('message')), result.get('error') or result.get('message')
+        return result.get('success', False), result.get('error') or result.get('message')
 
     def check_graduation_clearance(self, member_id):
         return _decode(self._data('GET', f'{member_id}/clearance'))
@@ -240,9 +280,9 @@ class MembersClient(ServiceClient):
         result = self.request('POST', f'{member_id}/clearance', payload={})
         return _decode(result.get('data')), result.get('error') or result.get('message')
 
-    def list_clearance_candidates(self, search=None, graduation_year=None, status_filter=None):
+    def list_clearance_candidates(self, search=None, graduation_year=None, status_filter=None, faculty=None):
         return [_decode(item) for item in self._data('GET', 'clearance', {
-            'q': search, 'graduation_year': graduation_year, 'state': status_filter,
+            'q': search, 'graduation_year': graduation_year, 'state': status_filter, 'faculty': faculty,
         })]
 
     def __getattr__(self, name):
@@ -258,10 +298,11 @@ class MembersClient(ServiceClient):
 class LoansClient(ServiceClient):
     service = 'loans'
 
-    def get_all_loans(self, page=1, per_page=20, search=None, status=None, member_id=None, book_id=None):
+    def get_all_loans(self, page=1, per_page=20, search=None, status=None,
+                      member_id=None, book_id=None, sort_by='loan_date', order='desc'):
         return RemotePagination(self.request('GET', '', {
             'page': page, 'per_page': per_page, 'q': search, 'status': status,
-            'member_id': member_id, 'book_id': book_id,
+            'member_id': member_id, 'book_id': book_id, 'sort': sort_by, 'order': order,
         }))
 
     def get_loan_by_id(self, loan_id):
@@ -283,8 +324,28 @@ class LoansClient(ServiceClient):
         result = self.request('POST', f'{loan_id}/pay-fine', payload={})
         return _decode(result.get('data')), result.get('error') or result.get('message')
 
-    def mark_as_lost(self, loan_id, notes=None):
-        result = self.request('POST', f'{loan_id}/lost', payload={'notes': notes})
+    def mark_as_lost(self, loan_id, notes=None, pay_now=False):
+        result = self.request('POST', f'{loan_id}/lost', payload={'notes': notes, 'pay_now': pay_now})
+        return _decode(result.get('data')), result.get('error') or result.get('message')
+
+    def get_reservations(self, page=1, per_page=20, status=None, search=None, member_id=None, book_id=None):
+        return RemotePagination(self.request('GET', 'reservations', {
+            'page': page, 'per_page': per_page, 'status': status, 'q': search,
+            'member_id': member_id, 'book_id': book_id,
+        }))
+
+    def create_reservation(self, book_id, member_id, notes=None):
+        result = self.request('POST', 'reservations', payload={
+            'book_id': book_id, 'member_id': member_id, 'notes': notes,
+        })
+        return _decode(result.get('data')), result.get('error') or result.get('message')
+
+    def cancel_reservation(self, reservation_id):
+        result = self.request('POST', f'reservations/{reservation_id}/cancel', payload={})
+        return _decode(result.get('data')), result.get('error') or result.get('message')
+
+    def fulfill_reservation(self, reservation_id, librarian_id):
+        result = self.request('POST', f'reservations/{reservation_id}/fulfill', payload={'librarian_id': librarian_id})
         return _decode(result.get('data')), result.get('error') or result.get('message')
 
     def __getattr__(self, name):
@@ -298,15 +359,32 @@ class LoansClient(ServiceClient):
 class ReportsClient(ServiceClient):
     service = 'reports'
 
-    def get_dashboard_summary(self): return self._data('GET', 'dashboard')
-    def get_monthly_loan_chart(self, months=12): return self._data('GET', 'monthly-loans', {'months': months})
-    def get_top_books(self, limit=10, period_days=30): return self._data('GET', 'top-books', {'limit': limit, 'period': period_days})
-    def get_top_members(self, limit=10, period_days=30): return self._data('GET', 'top-members', {'limit': limit, 'period': period_days})
-    def get_category_distribution(self): return self._data('GET', 'category-distribution')
-    def get_overdue_report(self): return [_decode(item) for item in self._data('GET', 'overdue')]
-    def get_fine_report(self, month=None, year=None): return self._data('GET', 'fines', {'month': month, 'year': year})
-    def get_system_alerts(self): return self._data('GET', 'alerts')
-    def get_faculty_loan_stats(self): return self._data('GET', 'faculty-loans')
+    def get_dashboard_summary(self):
+        return _decode(self._data('GET', 'dashboard'))
+
+    def get_monthly_loan_chart(self, months=12):
+        return self._data('GET', 'monthly-loans', {'months': months})
+
+    def get_top_books(self, limit=10, period_days=30):
+        return [_decode(item) for item in self._data('GET', 'top-books', {'limit': limit, 'period': period_days})]
+
+    def get_top_members(self, limit=10, period_days=30):
+        return [_decode(item) for item in self._data('GET', 'top-members', {'limit': limit, 'period': period_days})]
+
+    def get_category_distribution(self):
+        return self._data('GET', 'category-distribution')
+
+    def get_overdue_report(self):
+        return [_decode(item) for item in self._data('GET', 'overdue')]
+
+    def get_fine_report(self, month=None, year=None):
+        return _decode(self._data('GET', 'fines', {'month': month, 'year': year}))
+
+    def get_system_alerts(self):
+        return self._data('GET', 'alerts')
+
+    def get_faculty_loan_stats(self):
+        return self._data('GET', 'faculty-loans')
 
 
 books_client = BooksClient()

@@ -1,7 +1,9 @@
 """
 Members Web Routes
 """
-from flask import Blueprint, render_template, redirect, url_for, flash, request
+import csv
+import io
+from flask import Blueprint, render_template, redirect, url_for, flash, request, Response
 from flask_login import login_required
 from app.service_clients import members_client, loans_client
 from app.service_access import service_router
@@ -26,33 +28,77 @@ def index():
 
     pagination = MemberService.get_all_members(
         page=page, search=search, status=status,
-        member_type=member_type, faculty=faculty
+        member_type=member_type, faculty=faculty,
     )
     faculties = MemberService.get_faculties()
+    stats = MemberService.get_statistics()
 
-    return render_template('members/index.html',
-                           pagination=pagination, members=pagination.items,
-                           faculties=faculties,
-                           search=search, selected_status=status,
-                           selected_type=member_type, selected_faculty=faculty)
+    return render_template(
+        'members/index.html',
+        pagination=pagination,
+        members=pagination.items,
+        faculties=faculties,
+        stats=stats,
+        search=search,
+        selected_status=status,
+        selected_type=member_type,
+        selected_faculty=faculty,
+    )
 
 
 @members_bp.route('/clearance')
 @login_required
 def clearance():
-    """Tra cứu & xác nhận hoàn trả sách ra trường cho sinh viên / học viên."""
     search = request.args.get('search', '')
     graduation_year = request.args.get('graduation_year', type=int)
     state = request.args.get('state', '')
+    faculty = request.args.get('faculty', '')
     candidates = MemberService.list_clearance_candidates(
-        search=search, graduation_year=graduation_year, status_filter=state
+        search=search, graduation_year=graduation_year, status_filter=state, faculty=faculty,
     )
+    faculties = MemberService.get_faculties()
     return render_template(
         'members/clearance.html',
         candidates=candidates,
+        faculties=faculties,
         search=search,
         selected_year=graduation_year,
         selected_state=state,
+        selected_faculty=faculty,
+    )
+
+
+@members_bp.route('/clearance/export')
+@login_required
+def export_clearance():
+    candidates = MemberService.list_clearance_candidates(
+        search=request.args.get('search', ''),
+        graduation_year=request.args.get('graduation_year', type=int),
+        status_filter=request.args.get('state', ''),
+        faculty=request.args.get('faculty', ''),
+    )
+    buf = io.StringIO()
+    buf.write('\ufeff')
+    writer = csv.writer(buf)
+    writer.writerow(['MSSV', 'Mã thẻ', 'Họ và tên', 'Đối tượng', 'Khoa', 'Lớp', 'Năm TN', 'Sách đang giữ', 'Phí chưa thanh toán (VNĐ)', 'Trạng thái xét duyệt'])
+    state_labels = {'cleared': 'Đã hoàn tất', 'eligible': 'Đủ điều kiện', 'blocked': 'Đang vướng nghĩa vụ'}
+    for c in candidates:
+        writer.writerow([
+            c.student_id or '',
+            c.member_code,
+            c.full_name,
+            c.member_type,
+            c.faculty or '',
+            c.class_name or '',
+            c.graduation_year or '',
+            c.active_loans_count,
+            int(c.unpaid_fine or 0),
+            state_labels.get(c.clearance_state, c.clearance_state),
+        ])
+    return Response(
+        buf.getvalue(),
+        mimetype='text/csv; charset=utf-8',
+        headers={'Content-Disposition': 'attachment; filename="xet-hoan-tat-ra-truong.csv"'},
     )
 
 
@@ -64,12 +110,23 @@ def confirm_clearance(member_id):
         flash(error, 'danger')
     else:
         flash(
-            f'Đã xác nhận hoàn tất nghĩa vụ thư viện ra trường cho {member.full_name} ({member.student_id or member.member_code}).',
-            'success'
+            f'Đã xác nhận hoàn tất nghĩa vụ thư viện cho {member.full_name} ({member.student_id or member.member_code}).',
+            'success',
         )
-    next_url = request.form.get('next')
-    if next_url == 'clearance':
+    if request.form.get('next') == 'clearance':
         return redirect(url_for('members.clearance'))
+    return redirect(url_for('members.detail', member_id=member_id))
+
+
+@members_bp.route('/<int:member_id>/renew-card', methods=['POST'])
+@login_required
+def renew_card(member_id):
+    months = request.form.get('months', 12, type=int)
+    member, error = MemberService.renew_card(member_id, months=months)
+    if error:
+        flash(error, 'danger')
+    else:
+        flash(f'Đã gia hạn thẻ của {member.full_name} thêm {months} tháng.', 'success')
     return redirect(url_for('members.detail', member_id=member_id))
 
 
@@ -80,9 +137,14 @@ def detail(member_id):
     clearance_info = MemberService.check_graduation_clearance(member_id)
     page = request.args.get('page', 1, type=int)
     loans_pagination = LoanService.get_all_loans(page=page, member_id=member_id, per_page=10)
-    return render_template('members/detail.html', member=member,
-                           clearance_info=clearance_info,
-                           loans_pagination=loans_pagination)
+    reservations = LoanService.get_reservations(member_id=member_id, status='active', per_page=10).items
+    return render_template(
+        'members/detail.html',
+        member=member,
+        clearance_info=clearance_info,
+        loans_pagination=loans_pagination,
+        reservations=reservations,
+    )
 
 
 @members_bp.route('/create', methods=['GET', 'POST'])
@@ -92,11 +154,11 @@ def create():
         member, error = MemberService.create_member(request.form)
         if error:
             flash(error, 'danger')
-        else:
-            flash(f'Thêm thành viên "{member.full_name}" thành công! Mã: {member.member_code}', 'success')
-            return redirect(url_for('members.detail', member_id=member.id))
+            return render_template('members/create.html', form_data=request.form)
+        flash(f'Đã cấp thẻ thư viện {member.member_code} cho {member.full_name}.', 'success')
+        return redirect(url_for('members.detail', member_id=member.id))
 
-    return render_template('members/create.html')
+    return render_template('members/create.html', form_data={})
 
 
 @members_bp.route('/<int:member_id>/edit', methods=['GET', 'POST'])
@@ -109,7 +171,7 @@ def edit(member_id):
         if error:
             flash(error, 'danger')
         else:
-            flash(f'Cập nhật thông tin "{updated.full_name}" thành công!', 'success')
+            flash(f'Đã cập nhật hồ sơ của "{updated.full_name}".', 'success')
             return redirect(url_for('members.detail', member_id=member_id))
 
     return render_template('members/edit.html', member=member)
@@ -124,6 +186,6 @@ def delete(member_id):
     success, error = MemberService.delete_member(member_id)
     if error:
         flash(error, 'danger')
-    else:
-        flash(f'Đã xóa thành viên "{name}".', 'success')
+        return redirect(url_for('members.detail', member_id=member_id))
+    flash(f'Đã xóa hồ sơ "{name}".', 'success')
     return redirect(url_for('members.index'))

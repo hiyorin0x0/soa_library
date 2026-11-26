@@ -1,8 +1,9 @@
 """
 Flask Application Factory
-SOA-based Library Management System
+SOA-based University Library System
 """
 import os
+from datetime import date, datetime
 from flask import Flask, render_template
 from app.config import config
 from app.extensions import db, login_manager, csrf, migrate, mail
@@ -19,13 +20,19 @@ def create_app(config_name=None, role='monolith'):
     app.config['USE_SERVICE_CLIENTS'] = role == 'gateway'
 
     if role == 'gateway':
-        required_secrets = {'SECRET_KEY': app.config.get('SECRET_KEY'),
-                            'JWT_SECRET_KEY': app.config.get('JWT_SECRET_KEY')}
-        required_secrets.update({f'{service.upper()}_SERVICE_JWT_SECRET': secret
-                                 for service, secret in app.config['SERVICE_JWT_SECRETS'].items()})
-        missing = [name for name, secret in required_secrets.items()
-                   if not secret or len(secret) < 32
-                   or secret.lower().startswith(('replace-', 'generate-'))]
+        required_secrets = {
+            'SECRET_KEY': app.config.get('SECRET_KEY'),
+            'JWT_SECRET_KEY': app.config.get('JWT_SECRET_KEY'),
+        }
+        required_secrets.update({
+            f'{service.upper()}_SERVICE_JWT_SECRET': secret
+            for service, secret in app.config['SERVICE_JWT_SECRETS'].items()
+        })
+        missing = [
+            name for name, secret in required_secrets.items()
+            if not secret or len(secret) < 32
+            or secret.lower().startswith(('replace-', 'generate-'))
+        ]
         if missing:
             raise RuntimeError('Set strong (at least 32-character) secrets in .env: ' + ', '.join(missing))
 
@@ -36,15 +43,20 @@ def create_app(config_name=None, role='monolith'):
     migrate.init_app(app, db)
     mail.init_app(app)
 
-    # Register blueprints - Web UI routes (the gateway owns the browser session).
+    # Ensure all models are registered
+    from app.models import user, book, member, loan, reservation  # noqa: F401
+
+    # Register Web UI blueprints
     from app.web.auth import auth_bp
     from app.web.books import books_bp
     from app.web.members import members_bp
     from app.web.loans import loans_bp
     from app.web.dashboard import dashboard_bp
+    from app.web.opac import opac_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(dashboard_bp)
+    app.register_blueprint(opac_bp, url_prefix='/catalog')
     app.register_blueprint(books_bp, url_prefix='/books')
     app.register_blueprint(members_bp, url_prefix='/members')
     app.register_blueprint(loans_bp, url_prefix='/loans')
@@ -65,10 +77,7 @@ def create_app(config_name=None, role='monolith'):
         app.register_blueprint(auth_api_bp)
         register_service_gateway(app)
 
-    # Register error handlers
     register_error_handlers(app)
-
-    # Register template filters
     register_template_filters(app)
 
     @app.after_request
@@ -78,9 +87,7 @@ def create_app(config_name=None, role='monolith'):
         response.headers.setdefault('Referrer-Policy', 'strict-origin-when-cross-origin')
         return response
 
-    # Create upload directory
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-
     return app
 
 
@@ -102,35 +109,67 @@ def register_error_handlers(app):
 def register_template_filters(app):
     @app.template_filter('vnd')
     def vnd_format(value):
-        """Format number as Vietnamese Dong"""
         try:
-            return f"{int(value):,}₫".replace(',', '.')
+            return f"{int(round(float(value))):,}₫".replace(',', '.')
         except (ValueError, TypeError):
             return "0₫"
+
+    @app.template_filter('fmt_date')
+    def fmt_date(value):
+        if not value:
+            return '—'
+        if isinstance(value, datetime):
+            return value.strftime('%d/%m/%Y')
+        if isinstance(value, date):
+            return value.strftime('%d/%m/%Y')
+        if isinstance(value, str):
+            try:
+                return date.fromisoformat(value[:10]).strftime('%d/%m/%Y')
+            except ValueError:
+                return value
+        return str(value)
+
+    @app.template_filter('fmt_datetime')
+    def fmt_datetime(value):
+        if not value:
+            return '—'
+        if isinstance(value, datetime):
+            return value.strftime('%d/%m/%Y %H:%M')
+        if isinstance(value, str):
+            try:
+                return datetime.fromisoformat(value).strftime('%d/%m/%Y %H:%M')
+            except ValueError:
+                return value
+        return str(value)
 
     @app.template_filter('truncate_text')
     def truncate_text(value, length=100):
         if value and len(value) > length:
-            return value[:length] + '...'
+            return value[:length] + '…'
         return value or ''
 
     @app.template_filter('status_badge')
     def status_badge(status):
         badges = {
-            'available': '<span class="badge-tag tag-success">Còn sẵn</span>',
-            'unavailable': '<span class="badge-tag tag-neutral">Tạm ngưng</span>',
-            'borrowed': '<span class="badge-tag tag-warning">Đang mượn</span>',
-            'lost': '<span class="badge-tag tag-danger">Báo mất</span>',
-            'active': '<span class="badge-tag tag-success">Đang hoạt động</span>',
-            'suspended': '<span class="badge-tag tag-danger">Tạm khóa</span>',
-            'graduated': '<span class="badge-tag tag-navy">Đã ra trường</span>',
-            'inactive': '<span class="badge-tag tag-neutral">Ngưng hoạt động</span>',
-            'overdue': '<span class="badge-tag tag-danger">Quá hạn</span>',
-            'returned': '<span class="badge-tag tag-info">Đã trả</span>',
-            'borrowable': '<span class="badge-tag tag-success">Cho mượn về</span>',
-            'reference_only': '<span class="badge-tag tag-navy">Đọc tại chỗ</span>',
+            'available': '<span class="status-pill pill-emerald"><span class="dot"></span>Đang phục vụ</span>',
+            'unavailable': '<span class="status-pill pill-slate"><span class="dot"></span>Tạm ngưng</span>',
+            'borrowed': '<span class="status-pill pill-amber"><span class="dot"></span>Đang mượn</span>',
+            'lost': '<span class="status-pill pill-rose"><span class="dot"></span>Làm mất sách</span>',
+            'active': '<span class="status-pill pill-emerald"><span class="dot"></span>Đang hoạt động</span>',
+            'suspended': '<span class="status-pill pill-rose"><span class="dot"></span>Đang khóa thẻ</span>',
+            'graduated': '<span class="status-pill pill-indigo"><span class="dot"></span>Đã thanh lý thẻ</span>',
+            'inactive': '<span class="status-pill pill-slate"><span class="dot"></span>Ngưng hoạt động</span>',
+            'overdue': '<span class="status-pill pill-rose"><span class="dot"></span>Quá hạn</span>',
+            'returned': '<span class="status-pill pill-sky"><span class="dot"></span>Đã trả sách</span>',
+            'borrowable': '<span class="status-pill pill-emerald"><span class="dot"></span>Cho mượn về</span>',
+            'reference_only': '<span class="status-pill pill-slate"><span class="dot"></span>Đọc tại thư viện</span>',
+            'pending': '<span class="status-pill pill-amber"><span class="dot"></span>Chờ sách trả về</span>',
+            'ready': '<span class="status-pill pill-emerald"><span class="dot"></span>Có sách tại quầy</span>',
+            'fulfilled': '<span class="status-pill pill-sky"><span class="dot"></span>Đã nhận sách</span>',
+            'cancelled': '<span class="status-pill pill-slate"><span class="dot"></span>Đã hủy</span>',
+            'expired': '<span class="status-pill pill-rose"><span class="dot"></span>Quá hạn nhận</span>',
         }
-        return badges.get(status, f'<span class="badge-tag tag-neutral">{status}</span>')
+        return badges.get(status, f'<span class="status-pill pill-slate">{status}</span>')
 
     @app.template_filter('member_type_label')
     def member_type_label(mtype):
@@ -139,4 +178,25 @@ def register_template_filters(app):
             'postgrad': 'Học viên cao học',
             'lecturer': 'Giảng viên / Cán bộ',
         }
-        return labels.get(mtype, mtype or '-')
+        return labels.get(mtype, mtype or '—')
+
+    @app.template_filter('condition_label')
+    def condition_label(cond):
+        labels = {
+            'good': 'Nguyên vẹn',
+            'fair': 'Khá',
+            'poor': 'Cũ nhẹ',
+            'damaged': 'Hư hỏng nặng',
+            'lost': 'Làm mất sách',
+        }
+        return labels.get(cond, cond or '—')
+
+    @app.template_filter('fine_reason_label')
+    def fine_reason_label(reason):
+        labels = {
+            'overdue': 'Tiền phạt trả muộn',
+            'damaged': 'Đền bù hư hỏng sách',
+            'overdue_damaged': 'Phạt trả muộn & hư hỏng',
+            'lost': 'Đền bù làm mất sách',
+        }
+        return labels.get(reason, 'Tiền phạt / Đền bù')

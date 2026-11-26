@@ -114,11 +114,11 @@
     <div class="sidebar-footer">
         <div class="staff-chip">
             <div class="staff-avatar">{{ current_user.full_name[0]|upper }}</div>
-            <div class="flex-grow-1 min-w-0">
-                <div class="staff-name">{{ current_user.full_name }}</div>
-                <div class="staff-role">{{ 'Quản trị hệ thống' if current_user.is_admin else 'Cán bộ lưu thông' }}</div>
+            <div class="staff-meta">
+                <div class="staff-name" title="{{ current_user.full_name }}">{{ current_user.full_name }}</div>
+                <div class="staff-role text-truncate">{{ 'Quản trị hệ thống' if current_user.is_admin else 'Cán bộ lưu thông' }}</div>
             </div>
-            <a href="{{ url_for('auth.logout') }}" class="text-secondary ms-1" title="Đăng xuất" data-no-pjax>
+            <a href="{{ url_for('auth.logout') }}" class="staff-logout" title="Đăng xuất" data-no-pjax>
                 <i class="fas fa-right-from-bracket"></i>
             </a>
         </div>

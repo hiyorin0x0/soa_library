@@ -126,11 +126,11 @@ code, .code-chip {
     to   { opacity: 1; transform: translateY(0); }
 }
 
-#pageViewport {
+#pageViewport.is-vt {
     view-transition-name: page-viewport;
 }
 .page-enter {
-    animation: slideInSubtle 220ms var(--ease-out) both;
+    animation: slideInSubtle 220ms var(--ease-out);
 }
 
 /* ==========================================================================
@@ -258,12 +258,28 @@ code, .code-chip {
 .sidebar-footer {
     padding: 10px 14px;
     border-top: 1px solid var(--line);
+    overflow: hidden;
 }
 .staff-chip {
     display: flex;
     align-items: center;
     gap: 9px;
+    width: 100%;
     min-width: 0;
+}
+.staff-meta {
+    flex: 1 1 0%;
+    min-width: 0;
+    overflow: hidden;
+}
+.staff-logout {
+    flex-shrink: 0;
+    color: var(--ink-muted);
+    padding: 4px;
+    transition: color 0.14s ease;
+}
+.staff-logout:hover {
+    color: var(--terracotta);
 }
 .staff-avatar {
     width: 28px;

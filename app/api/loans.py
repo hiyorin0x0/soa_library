@@ -93,7 +93,10 @@ def create_reservation():
 @api_loans_bp.route('/reservations/<int:reservation_id>/cancel', methods=['POST'])
 @service_token_required
 def cancel_reservation(reservation_id):
-    res, error = LoanService.cancel_reservation(reservation_id)
+    data = request.get_json(silent=True) or request.form
+    raw_mid = data.get('member_id')
+    member_id = int(raw_mid) if raw_mid not in (None, '') else None
+    res, error = LoanService.cancel_reservation(reservation_id, member_id=member_id)
     if error:
         return jsonify({'status': 'error', 'message': error}), 409
     return jsonify({'status': 'success', 'data': res.to_dict()})

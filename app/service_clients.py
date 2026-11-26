@@ -340,8 +340,9 @@ class LoansClient(ServiceClient):
         })
         return _decode(result.get('data')), result.get('error') or result.get('message')
 
-    def cancel_reservation(self, reservation_id):
-        result = self.request('POST', f'reservations/{reservation_id}/cancel', payload={})
+    def cancel_reservation(self, reservation_id, member_id=None):
+        payload = {'member_id': member_id} if member_id is not None else {}
+        result = self.request('POST', f'reservations/{reservation_id}/cancel', payload=payload)
         return _decode(result.get('data')), result.get('error') or result.get('message')
 
     def fulfill_reservation(self, reservation_id, librarian_id):

@@ -117,9 +117,9 @@
 
             {% if result.reservations %}
             <div class="card mb-4">
-                <div class="card-header">Sách đã đặt trước ({{ result.reservations | length }})</div>
+                <div class="card-header">Sách đã đặt giữ ({{ result.reservations | length }})</div>
                 <div class="table-responsive">
-                    <table class="table">
+                    <table class="table align-middle">
                         <thead>
                             <tr>
                                 <th>Mã đặt chỗ</th>
@@ -127,16 +127,33 @@
                                 <th>Nơi nhận</th>
                                 <th>Hạn giữ tại quầy</th>
                                 <th>Trạng thái</th>
+                                <th class="text-end">Thao tác</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for r in result.reservations %}
                             <tr>
                                 <td><code>{{ r.reservation_code }}</code></td>
-                                <td class="fw-medium">{{ r.book.title if r.book else '—' }}</td>
-                                <td><span class="code-chip">{{ r.book.location if r.book and r.book.location else 'Quầy thư viện' }}</span></td>
+                                <td class="fw-medium">
+                                    {% if r.book %}
+                                    <a href="{{ url_for('opac.book_detail', book_id=r.book.id) }}" class="text-decoration-none text-dark">{{ r.book.title }}</a>
+                                    {% else %}—{% endif %}
+                                </td>
+                                <td><span class="code-chip">{{ r.book.location if r.book and r.book.location else 'Quầy Tầng 1' }}</span></td>
                                 <td>{{ r.expires_at | fmt_date }}</td>
                                 <td>{{ r.status | status_badge | safe }}</td>
+                                <td class="text-end">
+                                    {% if r.status in ('pending', 'ready') %}
+                                    <form method="POST" action="{{ url_for('opac.cancel_reader_reservation', reservation_id=r.id) }}" class="d-inline" data-no-pjax onsubmit="return confirm('Xác nhận hủy phiếu đặt giữ {{ r.reservation_code }}?');">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <input type="hidden" name="identifier" value="{{ identifier }}">
+                                        <input type="hidden" name="verify" value="{{ verify }}">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">Hủy đặt giữ</button>
+                                    </form>
+                                    {% else %}
+                                    <span class="text-muted small">—</span>
+                                    {% endif %}
+                                </td>
                             </tr>
                             {% endfor %}
                         </tbody>

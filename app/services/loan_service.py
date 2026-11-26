@@ -520,8 +520,10 @@ class LoanService:
         return res, None
 
     @staticmethod
-    def cancel_reservation(reservation_id):
+    def cancel_reservation(reservation_id, member_id=None):
         res = db.get_or_404(Reservation, reservation_id)
+        if member_id is not None and res.member_id != member_id:
+            return None, "Bạn không có quyền hủy phiếu đặt chỗ này."
         if res.status not in ('pending', 'ready'):
             return None, "Phiếu đặt chỗ không còn ở trạng thái chờ xử lý."
 

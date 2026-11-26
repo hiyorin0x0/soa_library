@@ -146,7 +146,7 @@
                 document.querySelectorAll('#topbar [data-bs-toggle="dropdown"]').forEach(btn => {
                     try { bootstrap.Dropdown.getInstance(btn)?.hide(); } catch (_) {}
                 });
-                document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+                document.querySelectorAll('.modal-backdrop, body > .modal[data-portaled="1"]').forEach(el => el.remove());
                 document.body.classList.remove('modal-open');
                 document.body.style.removeProperty('overflow');
                 document.body.style.removeProperty('padding-right');
@@ -163,12 +163,18 @@
             };
 
             if (document.startViewTransition && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-                await document.startViewTransition(performSwap).finished;
+                curViewport.classList.add('is-vt');
+                try {
+                    await document.startViewTransition(performSwap).finished;
+                } finally {
+                    curViewport.classList.remove('is-vt');
+                }
             } else {
                 performSwap();
                 curViewport.classList.remove('page-enter');
                 void curViewport.offsetWidth;
                 curViewport.classList.add('page-enter');
+                curViewport.addEventListener('animationend', () => curViewport.classList.remove('page-enter'), { once: true });
             }
         } catch (err) {
             if (err.name !== 'AbortError') {
@@ -218,6 +224,15 @@
 
     window.addEventListener('popstate', () => {
         smoothNavigate(window.location.href, false);
+    });
+
+    // Ensure Bootstrap modals are always direct children of <body> so they never get trapped under modal-backdrop
+    document.addEventListener('show.bs.modal', event => {
+        const modal = event.target;
+        if (modal && modal.parentElement !== document.body) {
+            modal.dataset.portaled = '1';
+            document.body.appendChild(modal);
+        }
     });
 
     // ---- Sidebar & Command Palette ----

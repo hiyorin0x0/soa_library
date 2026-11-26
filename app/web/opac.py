@@ -179,3 +179,31 @@ def reader_lookup():
         identifier=identifier,
         verify=verify,
     )
+
+
+@opac_bp.route('/reader/reservations/<int:reservation_id>/cancel', methods=['POST'])
+def cancel_reader_reservation(reservation_id):
+    identifier = request.form.get('identifier', '').strip()
+    verify = request.form.get('verify', '').strip()
+    portal_data, err = MemberService.lookup_reader_portal(identifier, verify)
+    if err:
+        flash(err, 'danger')
+        return redirect(url_for('opac.reader_lookup'))
+
+    member = portal_data['member']
+    member_id = member['id'] if isinstance(member, dict) else member.id
+    res, cancel_err = LoanService.cancel_reservation(reservation_id, member_id=member_id)
+    if cancel_err:
+        flash(cancel_err, 'danger')
+    else:
+        code = res['reservation_code'] if isinstance(res, dict) else res.reservation_code
+        flash(f'Đã hủy phiếu đặt giữ sách {code}. Bản sao đã được trả lại kệ.', 'info')
+
+    # Refresh reader portal data so user stays on their card view immediately
+    refreshed, _ = MemberService.lookup_reader_portal(identifier, verify)
+    return render_template(
+        'opac/reader.html',
+        result=refreshed,
+        identifier=identifier,
+        verify=verify,
+    )

@@ -1,15 +1,15 @@
-# LibCore University — Hệ thống Quản lý Thư viện Đại học (Kiến trúc SOA)
+# Hệ thống Quản lý Thư viện Trường Đại học Quy Nhơn (QNU Library — Kiến trúc SOA)
 
-Hệ thống quản lý danh mục học thuật, lưu thông tài liệu, đặt giữ chỗ trực tuyến (OPAC) và đối soát tốt nghiệp dành riêng cho **Thư viện Trung tâm Trường Đại học**, triển khai theo **Kiến trúc Hướng Dịch vụ (SOA)** gồm **API Gateway** và **4 dịch vụ miền độc lập**.
+Hệ thống quản lý danh mục học thuật, lưu thông tài liệu, đặt giữ chỗ trực tuyến (OPAC) và thanh lý thẻ ra trường dành riêng cho **Thư viện – Trung tâm Số và Học liệu, Trường Đại học Quy Nhơn (170 An Dương Vương, TP. Quy Nhơn)**, triển khai theo **Kiến trúc Hướng Dịch vụ (SOA)** gồm **API Gateway** và **4 dịch vụ miền độc lập**.
 
 ---
 
 ## Quy trình Phân tích & Thiết kế Dịch vụ (Service Design)
 
 ### Bước 1. Xác định Mục đích & Khoanh vùng Phạm vi (Scope)
-- **Đối tượng & Phạm vi:** Khoanh vùng cụ thể cho **Thư viện Trường Đại học** — phục vụ nội bộ **Sinh viên đại học, Học viên sau đại học và Giảng viên / Cán bộ** trong trường (không xây dựng dàn trải cho thư viện công cộng hay sàn thương mại điện tử bán sách).
-- **Mô hình hoạt động:** **Miễn phí khuyến khích đọc và nghiên cứu** (0₫ phí cấp thẻ, 0₫ phí mượn giáo trình). Hệ thống chỉ hạch toán **phí chế tài** (trả muộn, làm hư hỏng nặng hoặc làm mất sách) để bảo toàn tài sản công và duy trì vòng quay học liệu công bằng giữa các khóa.
-- **Điều kiện tham gia:** Định danh bắt buộc bằng **Mã số sinh viên (MSSV)** hoặc **Mã cán bộ (MCB)** gắn với Khoa/Viện, Lớp và Khóa tốt nghiệp.
+- **Đối tượng & Phạm vi:** Khoanh vùng trực tiếp cho **Thư viện Trường Đại học Quy Nhơn (QNU)** tại Tòa nhà Thư viện 15 tầng (*Phòng Giáo trình Tầng 1, Phòng Mượn Tầng 1, Phòng Đọc Mở 1 Tầng 2, Phòng Đọc Mở 2 Tầng 3*) — phục vụ nội bộ **Sinh viên chính quy (K44–K47), Học viên cao học và Giảng viên / Cán bộ** thuộc các khoa đào tạo của QNU.
+- **Mô hình hoạt động:** **Miễn phí khuyến khích đọc và nghiên cứu** (0₫ phí cấp thẻ, 0₫ phí mượn giáo trình). Hệ thống chỉ hạch toán **tiền phạt / đền bù** (trả muộn, làm hư hỏng nặng hoặc làm mất sách) để bảo toàn tài sản công và duy trì vòng quay học liệu công bằng giữa các khóa.
+- **Điều kiện tham gia:** Định danh bắt buộc bằng **Mã sinh viên QNU (VD: `455105xxxx`, `465105xxxx`)** hoặc **Mã cán bộ** gắn với Khoa chuyên môn, Lớp và Khóa đào tạo.
 
 ### Bước 2. Mục đích từng Chức năng & Quy tắc Nghiệp vụ (Business Rules)
 

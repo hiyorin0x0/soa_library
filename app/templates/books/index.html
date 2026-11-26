@@ -38,10 +38,10 @@
             </select>
         </div>
         <div class="col-lg-2 col-md-4">
-            <label class="form-label">Hình thức mượn</label>
+            <label class="form-label">Quy định mượn</label>
             <select name="circulation_type" class="form-select">
                 <option value="">Tất cả</option>
-                <option value="borrowable" {% if selected_circulation == 'borrowable' %}selected{% endif %}>Cho mượn về</option>
+                <option value="borrowable" {% if selected_circulation == 'borrowable' %}selected{% endif %}>Mượn về & đọc tại chỗ</option>
                 <option value="reference_only" {% if selected_circulation == 'reference_only' %}selected{% endif %}>Chỉ đọc tại thư viện</option>
             </select>
         </div>

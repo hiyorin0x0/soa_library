@@ -89,9 +89,9 @@
                 <div class="card-header">Lưu thông & Số lượng</div>
                 <div class="card-body">
                     <div class="mb-3">
-                        <label class="form-label">Hình thức mượn <span class="text-danger">*</span></label>
+                        <label class="form-label">Quy định mượn <span class="text-danger">*</span></label>
                         <select name="circulation_type" class="form-select">
-                            <option value="borrowable">Cho mượn về</option>
+                            <option value="borrowable">Được mượn về & đọc tại chỗ</option>
                             <option value="reference_only" {% if form_data.get('circulation_type') == 'reference_only' %}selected{% endif %}>Chỉ đọc tại thư viện</option>
                         </select>
                     </div>

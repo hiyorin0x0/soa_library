@@ -23,6 +23,7 @@ def list_books():
         status=request.args.get('status', ''),
         circulation_type=request.args.get('circulation_type', ''),
         department=request.args.get('department', ''),
+        room=request.args.get('room', ''),
         sort_by=request.args.get('sort', 'title'),
         order=request.args.get('order', 'asc'),
     )
@@ -99,6 +100,7 @@ def facets():
         search=request.args.get('q', ''),
         category_id=request.args.get('category', type=int),
         availability=request.args.get('availability', ''),
+        room=request.args.get('room', ''),
     )})
 
 

@@ -96,9 +96,9 @@
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Hình thức mượn</label>
+                        <label class="form-label">Quy định mượn</label>
                         <select name="circulation_type" class="form-select">
-                            <option value="borrowable" {% if (book.circulation_type or 'borrowable') == 'borrowable' %}selected{% endif %}>Cho mượn về</option>
+                            <option value="borrowable" {% if (book.circulation_type or 'borrowable') == 'borrowable' %}selected{% endif %}>Được mượn về & đọc tại chỗ</option>
                             <option value="reference_only" {% if book.circulation_type == 'reference_only' %}selected{% endif %}>Chỉ đọc tại thư viện</option>
                         </select>
                     </div>

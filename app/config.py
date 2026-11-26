@@ -49,10 +49,10 @@ class Config:
     MEMBERS_PER_PAGE = 15
     LOANS_PER_PAGE = 20
 
-    # University Library Business Rules
-    LIBRARY_NAME = 'Thư viện Trung tâm Đại học'
-    LIBRARY_SHORT_NAME = 'LibCore University'
-    LIBRARY_MODEL = 'Lưu thông học thuật nội bộ'
+    # Quy Nhon University (QNU) Library Business Rules
+    LIBRARY_NAME = 'Thư viện Trường Đại học Quy Nhơn'
+    LIBRARY_SHORT_NAME = 'Thư viện ĐH Quy Nhơn'
+    LIBRARY_MODEL = 'Trung tâm Số & Học liệu — Nội bộ QNU'
     LOAN_DURATION_DAYS = 14
     MAX_LOANS_PER_MEMBER = 5
     MAX_RESERVATIONS_PER_MEMBER = 3
@@ -95,7 +95,7 @@ class Config:
     MAIL_USE_TLS = True
     MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
-    MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER') or 'thuvien@university.edu.vn'
+    MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER') or 'shl@qnu.edu.vn'
     SERVICE_URLS = {
         'books': os.environ.get('BOOKS_SERVICE_URL', 'http://127.0.0.1:5001'),
         'members': os.environ.get('MEMBERS_SERVICE_URL', 'http://127.0.0.1:5002'),

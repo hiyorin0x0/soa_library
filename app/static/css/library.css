@@ -729,9 +729,19 @@ code, .code-chip {
     left: 0;
     top: 0;
     bottom: 0;
-    width: 8px;
-    background: linear-gradient(90deg, rgba(0,0,0,0.16), rgba(255,255,255,0.18) 65%, rgba(0,0,0,0.06));
-    z-index: 2;
+    width: 9px;
+    background: linear-gradient(90deg, rgba(0,0,0,0.22), rgba(255,255,255,0.24) 55%, rgba(0,0,0,0.08));
+    z-index: 3;
+    pointer-events: none;
+}
+.book-jacket::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+    z-index: 3;
+    pointer-events: none;
 }
 /* Top color band (Penguin / MIT Press signature) */
 .book-jacket-band {
@@ -857,8 +867,15 @@ code, .code-chip {
 /* ==========================================================================
    PUBLIC OPAC (Literal.club + Swiss University Archive Style)
    ========================================================================== */
+.opac-topbar-util {
+    background: #F1EFE8;
+    border-bottom: 1px solid var(--line);
+    font-size: 12px;
+    color: var(--ink-secondary);
+}
+
 .opac-navbar {
-    background: rgba(250, 249, 245, 0.92);
+    background: rgba(250, 249, 245, 0.94);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
     border-bottom: 1px solid var(--line);
@@ -866,6 +883,79 @@ code, .code-chip {
     top: 0;
     z-index: 1020;
 }
+
+.room-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--line-strong);
+    background: var(--surface);
+    color: var(--ink-secondary);
+    font-size: 12.5px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.14s ease;
+}
+.room-pill:hover {
+    border-color: var(--ink);
+    color: var(--ink);
+}
+.room-pill.active {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: #FFFFFF;
+}
+
+.featured-shelf {
+    background: var(--paper-warm);
+    border-bottom: 1px solid var(--line);
+    padding: 28px 0 32px;
+}
+
+.view-toggle-group {
+    display: inline-flex;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    background: var(--surface);
+}
+.view-toggle-btn {
+    padding: 5px 10px;
+    font-size: 12px;
+    color: var(--ink-muted);
+    text-decoration: none;
+    border-right: 1px solid var(--line);
+    transition: background 0.12s ease, color 0.12s ease;
+}
+.view-toggle-btn:last-child { border-right: none; }
+.view-toggle-btn:hover { color: var(--ink); background: var(--surface-subtle); }
+.view-toggle-btn.active { background: var(--ink); color: #FFFFFF; }
+
+.opac-list-row {
+    display: flex;
+    gap: 18px;
+    padding: 18px 0;
+    border-bottom: 1px solid var(--line);
+    text-decoration: none;
+    color: inherit;
+    transition: background-color 0.14s ease;
+}
+.opac-list-row:hover { color: inherit; }
+.opac-list-row:hover .opac-list-title { text-decoration: underline; text-underline-offset: 3px; }
+.opac-list-cover {
+    width: 72px;
+    height: 102px;
+    border-radius: 3px 5px 5px 3px;
+    overflow: hidden;
+    flex-shrink: 0;
+    border: 1px solid rgba(22,22,21,0.12);
+    box-shadow: 0 4px 10px -3px rgba(22,22,21,0.15);
+    position: relative;
+    background: #EDEAE0;
+}
+.opac-list-cover img { width: 100%; height: 100%; object-fit: cover; }
 
 .opac-header-band {
     border-bottom: 1px solid var(--line);

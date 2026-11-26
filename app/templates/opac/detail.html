@@ -5,11 +5,11 @@
 <div class="container py-4 py-lg-5">
     <nav aria-label="breadcrumb" class="mb-4">
         <ol class="breadcrumb mb-0 small">
-            <li class="breadcrumb-item"><a href="{{ url_for('opac.index') }}" class="text-secondary text-decoration-none">Danh mục sách</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('opac.index') }}" class="text-secondary text-decoration-none">Danh mục OPAC</a></li>
             {% if book.category %}
             <li class="breadcrumb-item"><a href="{{ url_for('opac.index', category=book.category_id) }}" class="text-secondary text-decoration-none">{{ book.category.name }}</a></li>
             {% endif %}
-            <li class="breadcrumb-item active text-truncate" style="max-width:300px">{{ book.title }}</li>
+            <li class="breadcrumb-item active text-truncate" style="max-width:320px">{{ book.title }}</li>
         </ol>
     </nav>
 
@@ -21,41 +21,48 @@
                 {% else %}
                 <div>
                     <div class="book-jacket-band" style="background:{{ book.category.color if book.category else '#161615' }}"></div>
-                    <div class="cover-cat">{{ book.category.name if book.category else 'Thư viện Đại học' }}</div>
+                    <div class="cover-cat">{{ book.category.name if book.category else 'Thư viện QNU' }}</div>
                 </div>
                 <div class="cover-title">{{ book.title }}</div>
                 <div class="cover-author">{{ book.author }}</div>
                 {% endif %}
             </div>
 
+            <!-- QNU 15-Story Building Shelf Locator -->
             <div class="card">
+                <div class="card-header">Định vị kệ sách tại Thư viện</div>
                 <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center pb-2 mb-2 border-bottom small" style="border-color:var(--line)!important">
-                        <span class="text-muted">Hình thức</span>
-                        <span class="fw-medium">{{ 'Chỉ đọc tại thư viện' if book.circulation_type == 'reference_only' else 'Cho mượn mang về' }}</span>
+                    <div class="pb-2 mb-2 border-bottom small" style="border-color:var(--line)!important">
+                        <div class="text-muted" style="font-size:11px">Khu vực lưu trữ</div>
+                        <div class="fw-semibold">{{ loc_info.room_name }}</div>
+                        <div class="text-muted" style="font-size:11.5px">{{ loc_info.floor }}</div>
                     </div>
                     <div class="d-flex justify-content-between align-items-center pb-2 mb-2 border-bottom small" style="border-color:var(--line)!important">
-                        <span class="text-muted">Số cuốn hiện còn</span>
-                        <strong class="{% if book.available_copies > 0 %}text-success{% else %}text-danger{% endif %}">{{ book.available_copies }} / {{ book.total_copies }} cuốn</strong>
+                        <span class="text-muted">Ký hiệu giá kệ</span>
+                        <code>{{ loc_info.shelf }}</code>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center pb-2 mb-2 border-bottom small" style="border-color:var(--line)!important">
+                        <span class="text-muted">Quy định mượn</span>
+                        <span class="fw-medium">{{ 'Chỉ đọc tại thư viện' if book.circulation_type == 'reference_only' else 'Mượn về & đọc tại chỗ' }}</span>
                     </div>
                     <div class="d-flex justify-content-between align-items-center mb-3 small">
-                        <span class="text-muted">Vị trí kệ</span>
-                        <code>{{ book.location or 'Quầy chính' }}</code>
+                        <span class="text-muted">Số cuốn hiện còn</span>
+                        <strong class="{% if book.available_copies > 0 %}text-success{% else %}text-danger{% endif %}">{{ book.available_copies }} / {{ book.total_copies }} cuốn</strong>
                     </div>
 
                     {% if book.pending_reservations_count and book.pending_reservations_count > 0 %}
                     <div class="small text-muted mb-3">
-                        Hiện có <strong>{{ book.pending_reservations_count }}</strong> bạn đọc đang xếp hàng chờ.
+                        Hiện có <strong>{{ book.pending_reservations_count }}</strong> sinh viên đang chờ mượn.
                     </div>
                     {% endif %}
 
                     {% if (book.circulation_type or 'borrowable') == 'borrowable' and book.status == 'available' %}
                     <button type="button" class="btn btn-primary w-100" data-bs-toggle="modal" data-bs-target="#reserveModal">
-                        {% if book.available_copies > 0 %}Đặt giữ sách tại quầy{% else %}Đặt trước chờ sách trả về{% endif %}
+                        {% if book.available_copies > 0 %}Đặt giữ sách tại quầy{% else %}Đăng ký chờ mượn{% endif %}
                     </button>
                     {% else %}
                     <div class="p-2 rounded text-center small" style="background:var(--paper-warm);color:var(--ink-secondary)">
-                        Tài liệu phục vụ đọc tại phòng đọc
+                        Đọc trực tiếp tại {{ loc_info.room_name }}
                     </div>
                     {% endif %}
                 </div>
@@ -65,7 +72,7 @@
         <div class="col-md-8 col-lg-9">
             {% if book.category %}
             <div class="text-uppercase fw-semibold mb-2" style="font-size:11px;letter-spacing:0.07em;color:{{ book.category.color }}">
-                {{ book.category.name }}
+                {{ book.category.name }}{% if book.department %} · {{ book.department }}{% endif %}
             </div>
             {% endif %}
             <h1 class="font-editorial mb-2" style="font-size:clamp(26px, 3.2vw, 36px);line-height:1.2">{{ book.title }}</h1>
@@ -73,21 +80,21 @@
 
             {% if book.description %}
             <div class="mb-4 pb-4 border-bottom" style="border-color:var(--line)!important">
-                <p class="mb-0" style="font-size:14.5px;line-height:1.75;color:var(--ink);max-width:68ch">{{ book.description }}</p>
+                <p class="mb-0" style="font-size:14.5px;line-height:1.75;color:var(--ink);max-width:70ch">{{ book.description }}</p>
             </div>
             {% endif %}
 
-            <h6 class="text-uppercase fw-semibold mb-3" style="font-size:11px;letter-spacing:0.07em;color:var(--ink-muted)">Thông tin thư mục</h6>
-            <div class="row g-3">
+            <h6 class="text-uppercase fw-semibold mb-3" style="font-size:11px;letter-spacing:0.07em;color:var(--ink-muted)">Thông tin biên mục chi tiết</h6>
+            <div class="row g-3 mb-5">
                 <div class="col-sm-6">
                     <div class="info-field">
-                        <span class="info-field-label">Mã ISBN / Ký hiệu lưu chiểu</span>
+                        <span class="info-field-label">Mã ISBN / Lưu chiểu QNU</span>
                         <code>{{ book.isbn }}</code>
                     </div>
                 </div>
                 <div class="col-sm-6">
                     <div class="info-field">
-                        <span class="info-field-label">Đơn vị chuyên môn</span>
+                        <span class="info-field-label">Khoa / Đơn vị đào tạo</span>
                         <span>{{ book.department or 'Dùng chung toàn trường' }}</span>
                     </div>
                 </div>
@@ -111,11 +118,37 @@
                 </div>
                 <div class="col-sm-6">
                     <div class="info-field">
-                        <span class="info-field-label">Số trang</span>
-                        <span>{{ book.pages or '—' }}</span>
+                        <span class="info-field-label">Độ dày</span>
+                        <span>{{ (book.pages ~ ' trang') if book.pages else '—' }}</span>
                     </div>
                 </div>
             </div>
+
+            {% if related_books %}
+            <div class="pt-4 border-top" style="border-color:var(--line)!important">
+                <div class="d-flex justify-content-between align-items-baseline mb-3">
+                    <h3 class="font-editorial mb-0" style="font-size:21px">Tài liệu cùng chuyên ngành</h3>
+                    <a href="{{ url_for('opac.index', category=book.category_id) }}" class="small text-secondary text-decoration-none">Xem tất cả →</a>
+                </div>
+                <div class="row g-3">
+                    {% for rb in related_books %}
+                    <div class="col-6 col-sm-3">
+                        <a href="{{ url_for('opac.book_detail', book_id=rb.id) }}" class="shelf-book">
+                            <div class="book-jacket">
+                                {% if rb.cover_image %}
+                                <img src="{{ url_for('static', filename='img/books/' + rb.cover_image) }}" alt="{{ rb.title }}" loading="lazy">
+                                {% else %}
+                                <div class="book-jacket-title">{{ rb.title }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="shelf-book-title" style="font-size:13px">{{ rb.title }}</div>
+                            <div class="shelf-book-author" style="font-size:11.5px;margin-bottom:0">{{ rb.author }}</div>
+                        </a>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
         </div>
     </div>
 </div>
@@ -125,7 +158,7 @@
         <div class="modal-content" style="border-radius:10px;border:1px solid var(--line-strong)">
             <div class="modal-header border-bottom-0 pb-0">
                 <h5 class="modal-title font-editorial fs-4">
-                    {% if book.available_copies > 0 %}Đặt giữ sách tại quầy{% else %}Đặt trước chờ sách trả về{% endif %}
+                    {% if book.available_copies > 0 %}Đặt giữ sách tại quầy Tầng 1{% else %}Đăng ký chờ mượn sách{% endif %}
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
@@ -134,16 +167,16 @@
                 <div class="modal-body">
                     <p class="small text-muted mb-3">Tài liệu: <strong class="text-dark">{{ book.title }}</strong></p>
                     <div class="mb-3">
-                        <label class="form-label">Mã số sinh viên / Mã cán bộ <span class="text-danger">*</span></label>
-                        <input type="text" name="identifier" class="form-control" required placeholder="Nhập MSSV hoặc Mã thẻ">
+                        <label class="form-label">Mã sinh viên QNU / Mã cán bộ <span class="text-danger">*</span></label>
+                        <input type="text" name="identifier" class="form-control" required placeholder="VD: 4551050192 hoặc 22110112">
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Email trường hoặc Số điện thoại đăng ký <span class="text-danger">*</span></label>
-                        <input type="text" name="verify" class="form-control" required placeholder="Nhập email hoặc SĐT của bạn">
+                        <label class="form-label">Email (@st.qnu.edu.vn) hoặc SĐT đăng ký <span class="text-danger">*</span></label>
+                        <input type="text" name="verify" class="form-control" required placeholder="Nhập email hoặc số điện thoại">
                     </div>
                     <div>
                         <label class="form-label">Ghi chú nhận sách</label>
-                        <input type="text" name="notes" class="form-control" placeholder="Thời gian dự kiến đến quầy...">
+                        <input type="text" name="notes" class="form-control" placeholder="Thời gian dự kiến ghé Tầng 1...">
                     </div>
                 </div>
                 <div class="modal-footer border-top-0 pt-0">

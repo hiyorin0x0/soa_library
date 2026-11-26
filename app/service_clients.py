@@ -171,11 +171,11 @@ class BooksClient(ServiceClient):
 
     def get_all_books(self, page=1, per_page=12, search=None, category_id=None,
                       status=None, circulation_type=None, department=None,
-                      sort_by='title', order='asc'):
+                      room=None, sort_by='title', order='asc'):
         return RemotePagination(self.request('GET', '', {
             'page': page, 'per_page': per_page, 'q': search, 'category': category_id,
             'status': status, 'circulation_type': circulation_type, 'department': department,
-            'sort': sort_by, 'order': order,
+            'room': room, 'sort': sort_by, 'order': order,
         }))
 
     def get_all_categories(self):
@@ -184,9 +184,9 @@ class BooksClient(ServiceClient):
     def get_departments(self):
         return self._data('GET', 'departments')
 
-    def get_opac_facets(self, search=None, category_id=None, availability=None):
+    def get_opac_facets(self, search=None, category_id=None, availability=None, room=None):
         return self._data('GET', 'facets', {
-            'q': search, 'category': category_id, 'availability': availability,
+            'q': search, 'category': category_id, 'availability': availability, 'room': room,
         })
 
     def get_book_by_id(self, book_id):

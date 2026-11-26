@@ -20,7 +20,7 @@ class BookService:
     @staticmethod
     def get_all_books(page=1, per_page=12, search=None, category_id=None,
                       status=None, circulation_type=None, department=None,
-                      sort_by='title', order='asc'):
+                      room=None, sort_by='title', order='asc'):
         query = Book.query
 
         if search:
@@ -44,6 +44,9 @@ class BookService:
 
         if department:
             query = query.filter_by(department=department)
+
+        if room:
+            query = query.filter(Book.location.ilike(f'{room.strip()}%'))
 
         if status:
             if status == 'available':
@@ -345,7 +348,7 @@ class BookService:
         }
 
     @staticmethod
-    def get_opac_facets(search=None, category_id=None, availability=None):
+    def get_opac_facets(search=None, category_id=None, availability=None, room=None):
         """Compute accurate circulation-type counts without self-filtering distortion."""
         base = Book.query
         if search:
@@ -362,6 +365,8 @@ class BookService:
             )
         if category_id:
             base = base.filter_by(category_id=category_id)
+        if room:
+            base = base.filter(Book.location.ilike(f'{room.strip()}%'))
         if availability == 'available':
             base = base.filter(Book.available_copies > 0, Book.status == 'available')
 

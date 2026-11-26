@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Bảng điều hành{% endblock %} — Thư viện Trung tâm Đại học</title>
+    <title>{% block title %}Bảng điều hành{% endblock %} — Thư viện Trường Đại học Quy Nhơn</title>
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
@@ -21,10 +21,15 @@
 <aside id="sidebar">
     <div class="sidebar-brand">
         <a href="{{ url_for('dashboard.index') }}">
-            <div class="brand-mark">T</div>
+            <svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" class="flex-shrink-0">
+                <rect width="32" height="32" rx="6" fill="#161615"/>
+                <path d="M8.5 10.5C11.2 10.5 13.8 11.4 16 12.8C18.2 11.4 20.8 10.5 23.5 10.5V22C20.8 22 18.2 22.8 16 24.2C13.8 22.8 11.2 22 8.5 22V10.5Z" stroke="#FAF9F5" stroke-width="1.6" stroke-linejoin="round"/>
+                <path d="M16 12.8V24.2" stroke="#FAF9F5" stroke-width="1.6"/>
+                <circle cx="16" cy="8" r="1.4" fill="#D4AF37"/>
+            </svg>
             <div>
-                <div class="brand-name">Thư viện Đại học</div>
-                <div class="brand-caption">Quản trị lưu thông</div>
+                <div class="brand-name">Thư viện ĐH Quy Nhơn</div>
+                <div class="brand-caption">Trung tâm Số & Học liệu</div>
             </div>
         </a>
     </div>
